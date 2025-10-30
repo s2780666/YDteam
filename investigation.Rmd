@@ -16,14 +16,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r load-lib, message = FALSE}
 library(tidyverse)
+# Add any other libraries here
+
+
+
 ```
 
 
 ```{r load-data}
-#Handle the first csv
-strava_runs <- read_csv("AdjudicationsQ12023.csv")
-#strava_runs <- read_csv("AdjudicationsQ12023.csv")
-
+ summary(AdjudicationsQ12023)
 
 
 
