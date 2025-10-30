@@ -1,7 +1,7 @@
 ---
-title: "Presentation title"
+title: "Investigation of Prisoner Population Statistics"
 subtitle: "Presentation subtitle (if any)"
-author: "YD_team <br> Names of team members"
+author: "YD_team <br> Cecilia, Frank, Junkai, Zhandos"
 institute: "University of Edinburgh"
 date: "`r Sys.Date()`"
 output:
