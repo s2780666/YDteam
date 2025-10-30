@@ -22,6 +22,7 @@ library(tidyverse)
 ```{r load-data}
 #Handle the first csv
 strava_runs <- read_csv("AdjudicationsQ12023.csv")
+#strava_runs <- read_csv("AdjudicationsQ12023.csv")
 
 
 
