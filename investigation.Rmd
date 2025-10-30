@@ -27,16 +27,68 @@ library(readr)
 library(tidyverse)
 library(janitor)
 
+# Clean column names
+adjudications <- adjudications %>%
+  clean_names()
 
-adjudications <- adjudications %>% clean_names()
-adjudications_clean <- adjudications %>% 
+# Remove missing values
+adjudications_clean <- adjudications %>%
   drop_na()
+
+# Rename the 'date' column because it contains only "Q1"
+adjudications_clean <- adjudications_clean %>%
+  rename(quarter = date)
+
+# Check data
+glimpse(adjudications_clean)
+colSums(is.na(adjudications_clean))
 
 
 ```
 
 ```{r}
+#按监狱统计处罚数量
+adjudications_clean %>%
+  group_by(establishment) %>%
+  summarise(total = sum(count)) %>%
+  slice_max(total, n = 10) %>%
+  ggplot(aes(x = reorder(establishment, total), y = total)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top 10 Prisons by Adjudications (Q1 2023)",
+       x = "Prison",
+       y = "Total disciplinary cases")
+
 
 ```
 
+```{r}
+adjudications_by_offence <- adjudications_clean %>%
+  group_by(offence) %>%
+  summarise(total = sum(count)) %>%
+  slice_max(total, n = 10)
 
+ggplot(adjudications_by_offence, aes(x = reorder(offence, total), y = total)) +
+  geom_col(fill = "tomato") +
+  coord_flip() +
+  labs(
+    title = "Top 10 Offence Types in Adjudications",
+    x = "Offence Type",
+    y = "Total Cases"
+  )
+
+```
+
+```{r}
+adjudications_clean %>%
+  group_by(sex) %>%
+  summarise(total = sum(count)) %>%
+  ggplot(aes(x = sex, y = total, fill = sex)) +
+  geom_col() +
+  labs(
+    title = "Adjudications by Sex (Q1 2023)",
+    x = "Sex",
+    y = "Total Cases"
+  )
+
+```
