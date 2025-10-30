@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r load-lib, message = FALSE}
 library(tidyverse)
-# Add any other libraries here
+library(readr)
 
 
 
@@ -24,10 +24,18 @@ library(tidyverse)
 
 
 ```{r load-data}
- summary(AdjudicationsQ12023)
+library(tidyverse)
+library(janitor)
 
 
+adjudications <- adjudications %>% clean_names()
+adjudications_clean <- adjudications %>% 
+  drop_na()
 
+
+```
+
+```{r}
 
 ```
 
