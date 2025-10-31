@@ -30,19 +30,17 @@ adjudications <- read_csv("data/CSV/AdjudicationsQ12023.csv")
 library(tidyverse)
 library(janitor)
 
-# Clean column names
 adjudications <- adjudications %>%
   clean_names()
 
-# Remove missing values
 adjudications_clean <- adjudications %>%
   drop_na()
 
-# Rename the 'date' column because it contains only "Q1"
+
 adjudications_clean <- adjudications_clean %>%
   rename(quarter = date)
 
-# Check data
+
 glimpse(adjudications_clean)
 colSums(is.na(adjudications_clean))
 
