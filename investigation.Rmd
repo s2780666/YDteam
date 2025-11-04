@@ -64,19 +64,6 @@ adjudications_clean %>%
 ```
 
 ```{r}
-adjudications_by_offence <- adjudications_clean %>%
-  group_by(offence) %>%
-  summarise(total = sum(count)) %>%
-  slice_max(total, n = 10)
-
-ggplot(adjudications_by_offence, aes(x = reorder(offence, total), y = total)) +
-  geom_col(fill = "tomato") +
-  coord_flip() +
-  labs(
-    title = "Top 10 Offence Types in Adjudications",
-    x = "Offence Type",
-    y = "Total Cases"
-  )
 
 ```
 
@@ -115,4 +102,27 @@ adjudications_clean %>%
   )
 
 
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+
+age_offence_counts <- adjudications_clean %>%
+  group_by(age_group, offence) %>%
+  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  group_by(age_group) %>%
+  mutate(age_total = sum(total)) %>%
+  ungroup()
+
+age_offence_counts %>%
+  ggplot(aes(x = reorder(age_group, age_total), y = total, fill = offence)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Adjudications by Age Group and Offence (Q1 2023)",
+    x = "Age Group",
+    y = "Total Cases"
+  )
 ```
