@@ -29,7 +29,7 @@ adjudications <- read_csv("data/CSV/AdjudicationsQ12023.csv")
 ```{r load-data}
 library(tidyverse)
 library(janitor)
-
+ 
 adjudications <- adjudications %>%
   clean_names()
 
