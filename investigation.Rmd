@@ -93,3 +93,26 @@ adjudications_clean %>%
   )
 
 ```
+
+```{r}
+
+library(dplyr)
+library(ggplot2)
+
+
+adjudications_clean %>%
+  group_by(offence) %>%
+  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total)) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = reorder(offence, total), y = total, fill = offence)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Top 10 offences (Q1 2023)",
+    x = "Offence",
+    y = "Total cases"
+  )
+
+
+```
