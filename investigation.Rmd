@@ -148,8 +148,9 @@ pun_clean <- punishments %>%
   ) %>%
   select(Sex, `Age group`, no_days)
 ggplot(pun_clean, aes(x = `Age group`, y = no_days, color = Sex)) +
-  geom_jitter(alpha = 0.4, width = 0.2) +    
-  geom_smooth(method = "lm", se = FALSE, size = 1.2) +  #
+  geom_jitter(alpha = 0.4, width = 0.2) +  
+  geom_point(alpha=0.02) +
+  geom_smooth(method = 'lm', se = FALSE, size = 1.2) +  
   labs(
     title = "Punishment Lengths by Sex Across Age Groups (Q1 2023)",
     x = "Age Group",
