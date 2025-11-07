@@ -164,7 +164,7 @@ library(dplyr)
 library(ggplot2)
 
 
-
+load("data/CSV/punishments.rdata")
 
 colnames(punishments)
 
