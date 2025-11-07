@@ -117,7 +117,7 @@ age_offence_counts <- adjudications_clean %>%
   ungroup()
 
 age_offence_counts %>%
-  ggplot(aes(x = reorder(age_group, age_total), y = total, fill = offence)) +
+  ggplot(aes(x = age_group, y = total, fill = offence)) +
   geom_col() +
   coord_flip() +
   labs(
@@ -125,4 +125,37 @@ age_offence_counts %>%
     x = "Age Group",
     y = "Total Cases"
   )
+```
+
+
+```{r}
+
+# separate males and females
+adjudications_clean %>% 
+  group_by(gender) %>% 
+
+data_distance <- filter(data_distance, !is.na(runner_type))
+
+data_distance <- ungroup(data_distance) %>% 
+  mutate(
+    distance_km = distance..m./1000,
+    avg_speed = distance..m./elapsed.time..s.
+  )
+  
+data_distance %>% 
+  ggplot(
+    aes(x = distance_km, y = avg_speed, color = runner_type)
+  ) +
+  geom_point(alpha = 0.25) +
+  #adding smooth lines
+  geom_smooth(method = lm, se = FALSE) +
+  scale_color_manual(values = c("long" = "orange", "short" = "forestgreen"), labels = c("long" = "Long-Distance Runner", "short" = "Short-Distance Runner")) +
+  theme(legend.title = element_blank()) +
+  labs(
+    x = "Run distance (km)",
+    y = "Run average speed (m/s)",
+    title = "Speed vs Distance for Long- and Short-Distance Runners",
+    subtitle = "Grouped by runners' average distance: >13km vs <7km"
+  )
+    
 ```
