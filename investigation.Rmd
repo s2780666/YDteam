@@ -158,4 +158,37 @@ data_distance %>%
     subtitle = "Grouped by runners' average distance: >13km vs <7km"
   )
     
+```{r}
+library(readxl)
+library(dplyr)
+library(ggplot2)
+
+
+
+
+colnames(punishments)
+
+pun_clean <- punishments %>%
+  mutate(
+    no_days = as.numeric(`No of days`)   
+  ) %>%
+  filter(
+    !is.na(no_days),                  
+    no_days > 0                        
+  ) %>%
+  select(Sex, `Age group`, no_days)
+ggplot(pun_clean, aes(x = `Age group`, y = no_days, color = Sex)) +
+  geom_jitter(alpha = 0.4, width = 0.2) +  
+  geom_point(alpha=0.02) +
+  geom_smooth(method = 'lm', se = FALSE, size = 1.2) +  
+  labs(
+    title = "Punishment Lengths by Sex Across Age Groups (Q1 2023)",
+    x = "Age Group",
+    y = "Punishment Length (days)",
+    color = "Sex"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+
 ```
