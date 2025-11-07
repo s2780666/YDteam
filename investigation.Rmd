@@ -127,13 +127,15 @@ age_offence_counts %>%
   )
 ```
 
+
 ```{r}
+
 library(readxl)
 library(dplyr)
 library(ggplot2)
 
 
-
+load("./data/CSV/punishments.rdata")
 
 colnames(punishments)
 
