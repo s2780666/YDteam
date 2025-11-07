@@ -133,7 +133,6 @@ library(dplyr)
 library(ggplot2)
 
 
-# punishments <- read_excel("PunishmentsQ12023.csv")
 
 
 colnames(punishments)
