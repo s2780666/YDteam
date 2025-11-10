@@ -130,31 +130,28 @@ age_offence_counts %>%
 
 ```{r}
 
-library(readxl)
 library(dplyr)
 library(ggplot2)
-
+library(stringr)
 
 load("./data/CSV/punishments.rdata")
 
-colnames(punishments)
-
 pun_clean <- punishments %>%
   mutate(
-    no_days = as.numeric(`No of days`)   
+    no_days = as.numeric(`No of days`),
+    age_mid = sapply(str_extract_all(`Age group`, "\\d+"),
+                     function(v) if (length(v) >= 2) mean(as.numeric(v))
+                                 else as.numeric(v[1]))
   ) %>%
-  filter(
-    !is.na(no_days),                  
-    no_days > 0                        
-  ) %>%
-  select(Sex, `Age group`, no_days)
-ggplot(pun_clean, aes(x = `Age group`, y = no_days, color = Sex)) +
-  geom_jitter(alpha = 0.4, width = 0.2) +  
-  geom_point(alpha=0.02) +
-  geom_smooth(method = 'lm', se = FALSE, size = 1.2) +  
+  filter(!is.na(no_days), no_days > 0) %>%
+  select(Sex, age_mid, no_days)
+
+ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
+  geom_point(alpha = 0.25, size = 1.5) +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, size = 1.2) +
   labs(
-    title = "Punishment Lengths by Sex Across Age Groups (Q1 2023)",
-    x = "Age Group",
+    title = "Punishment Length vs Age (Q1 2023)",
+    x = "Age (years)",
     y = "Punishment Length (days)",
     color = "Sex"
   ) +
