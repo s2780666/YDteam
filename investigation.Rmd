@@ -48,41 +48,6 @@ colSums(is.na(adjudications_clean))
 ```
 
 ```{r}
-#按监狱统计处罚数量
-adjudications_clean %>%
-  group_by(establishment) %>%
-  summarise(total = sum(count)) %>%
-  slice_max(total, n = 10) %>%
-  ggplot(aes(x = reorder(establishment, total), y = total)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(title = "Top 10 Prisons by Adjudications (Q1 2023)",
-       x = "Prison",
-       y = "Total disciplinary cases")
-
-
-```
-
-```{r}
-
-```
-
-```{r}
-adjudications_clean %>%
-  group_by(sex) %>%
-  summarise(total = sum(count)) %>%
-  ggplot(aes(x = sex, y = total, fill = sex)) +
-  geom_col() +
-  labs(
-    title = "Adjudications by Sex (Q1 2023)",
-    x = "Sex",
-    y = "Total Cases"
-  )
-
-```
-
-```{r}
-
 library(dplyr)
 library(ggplot2)
 
@@ -125,6 +90,40 @@ age_offence_counts %>%
     x = "Age Group",
     y = "Total Cases"
   )
+
+```
+
+```{r}
+adjudications_clean %>%
+  group_by(sex) %>%
+  summarise(total = sum(count)) %>%
+  ggplot(aes(x = sex, y = total, fill = sex)) +
+  geom_col() +
+  labs(
+    title = "Adjudications by Sex (Q1 2023)",
+    x = "Sex",
+    y = "Total Cases"
+  )
+```
+
+```{r}
+
+#按监狱统计处罚数量
+adjudications_clean %>%
+  group_by(establishment) %>%
+  summarise(total = sum(count)) %>%
+  slice_max(total, n = 10) %>%
+  ggplot(aes(x = reorder(establishment, total), y = total)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top 10 Prisons by Adjudications (Q1 2023)",
+       x = "Prison",
+       y = "Total disciplinary cases")
+
+```
+
+```{r}
+
 ```
 
 
