@@ -230,7 +230,14 @@ library(dplyr)
 library(ggplot2)
 library(stringr)
 
+
 load("./data/CSV/punishments.rdata")
+
+
+load("data/CSV/punishments.rdata")
+
+colnames(punishments)
+
 
 pun_clean <- punishments %>%
   mutate(
