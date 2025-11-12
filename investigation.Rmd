@@ -46,7 +46,14 @@ colSums(is.na(adjudications_clean))
 
 
 ```
-
+Topic 1：
+Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+Question:
+What kinds of crimes are different age groups committing?
+introduction:
+Understanding how offence patterns vary across age groups is important for identifying behavioural trends within prisons.
+In the Adjudications dataset (Q1 2023), prisoners are classified into age groups, and each adjudication is associated with an offence category such as Disobedience/disrespect, Unauthorized transactions, or Violence.
+This section examines which age groups are responsible for particular types of offences and whether certain offences are more common among specific age ranges.
 ```{r}
 library(dplyr)
 library(ggplot2)
@@ -70,28 +77,139 @@ adjudications_clean %>%
 ```
 
 ```{r}
+library(readr)
 library(dplyr)
+library(tidyr)
 library(ggplot2)
+library(stringr)
+library(forcats)
+library(scales)
+library(gt)
+library(glue)
+library(janitor)
 
 
-age_offence_counts <- adjudications_clean %>%
-  group_by(age_group, offence) %>%
-  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
-  group_by(age_group) %>%
-  mutate(age_total = sum(total)) %>%
-  ungroup()
+adj <- read_csv("AdjudicationsQ12023.csv") |> clean_names()
 
-age_offence_counts %>%
-  ggplot(aes(x = age_group, y = total, fill = offence)) +
+
+adj_clean <- adj |>
+  rename(
+    age_group = age_group,
+    offence   = offence,
+    count     = count
+  ) |>
+  mutate(
+    count = suppressWarnings(as.numeric(count)),
+    age_group = as.character(age_group),
+    offence   = as.character(offence)
+  ) |>
+  filter(!is.na(age_group), !is.na(offence), !is.na(count), count > 0)
+
+
+age_order <- c("15 - 17","18 - 20","21 - 24","25 - 29","30 - 39","40 - 49","50 - 59","60 - 69","70 and over")
+adj_clean <- adj_clean |>
+  mutate(age_group = fct_relevel(age_group, age_order, after = 0))
+
+age_offence_counts <- adj_clean |>
+  group_by(age_group, offence) |>
+  summarise(total = sum(count), .groups = "drop")
+
+
+age_totals <- age_offence_counts |>
+  group_by(age_group) |>
+  summarise(age_total = sum(total), .groups = "drop")
+
+
+age_offence_share <- age_offence_counts |>
+  left_join(age_totals, by = "age_group") |>
+  mutate(pct = total / age_total)
+top_offences <- adj_clean |>
+  group_by(offence) |>
+  summarise(total_cases = sum(count), .groups = "drop") |>
+  arrange(desc(total_cases))
+
+top_offences |>
+  mutate(
+    Rank  = row_number(),
+    total_cases = comma(total_cases)
+  ) |>
+  select(Rank, offence, total_cases) |>
+  gt() |>
+  tab_header(title = md("**Top offences (Q1 2023)**")) |>
+  cols_label(
+    offence = "Offence",
+    total_cases = "Total cases"
+  )
+top3_by_age <- age_offence_share |>
+  arrange(age_group, desc(total)) |>
+  group_by(age_group) |>
+  slice_head(n = 3) |>
+  mutate(share = percent(pct, accuracy = 0.1)) |>
+  ungroup() |>
+  select(age_group, offence, total, share)
+
+top3_by_age |>
+  mutate(total = comma(total)) |>
+  gt(groupname_col = "age_group") |>
+  tab_header(title = md("**Top-3 offence types by age group**")) |>
+  cols_label(
+    offence = "Offence",
+    total   = "Cases",
+    share   = "Share"
+  )
+p_counts <- age_offence_counts |>
+  ggplot(aes(x = total, y = age_group, fill = offence)) +
   geom_col() +
-  coord_flip() +
+  geom_text(
+    data = age_totals,
+    aes(x = age_total, y = age_group, label = comma(age_total)),
+    nudge_x = max(age_totals$age_total, na.rm = TRUE) * 0.02, 
+    inherit.aes = FALSE, size = 3
+  ) +
   labs(
     title = "Adjudications by Age Group and Offence (Q1 2023)",
-    x = "Age Group",
-    y = "Total Cases"
-  )
+    x = "Total Cases",
+    y = "Age Group",
+    fill = "Offence"
+  ) +
+  theme_minimal(base_size = 12)
+
+p_counts
+# ggsave("age_offence_counts.png", p_counts, width = 9, height = 6, dpi = 300)
+
+age_offence_share <- age_offence_counts |>
+  dplyr::group_by(age_group) |>
+  dplyr::mutate(age_total = sum(total),
+                pct = total / age_total) |>
+  dplyr::ungroup()
+
+
+p_share_labels <- age_offence_share |>
+  dplyr::mutate(lbl = ifelse(pct >= 0.05, scales::percent(pct, accuracy = 1), "")) |>
+  ggplot(aes(x = pct, y = age_group, fill = offence)) +
+  geom_col() +
+  geom_text(
+    aes(label = lbl),
+    position = position_stack(vjust = 0.5),
+    size = 3, color = "white"
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Composition of Offence Types within Each Age Group (Q1 2023)",
+    x = "Share within Age Group",
+    y = "Age Group",
+    fill = "Offence"
+  ) +
+  theme_minimal(base_size = 12)
+
+p_share_labels
+# ggsave("age_offence_share.png", p_share_labels, width = 9, height = 6, dpi = 300)
 
 ```
+```{r}
+
+```
+
 
 ```{r}
 adjudications_clean %>%
@@ -105,27 +223,6 @@ adjudications_clean %>%
     y = "Total Cases"
   )
 ```
-
-```{r}
-
-#按监狱统计处罚数量
-adjudications_clean %>%
-  group_by(establishment) %>%
-  summarise(total = sum(count)) %>%
-  slice_max(total, n = 10) %>%
-  ggplot(aes(x = reorder(establishment, total), y = total)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(title = "Top 10 Prisons by Adjudications (Q1 2023)",
-       x = "Prison",
-       y = "Total disciplinary cases")
-
-```
-
-```{r}
-
-```
-
 
 ```{r}
 
@@ -156,5 +253,25 @@ ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
   ) +
   theme_minimal(base_size = 14)
 
+
+```
+
+```{r}
+#按监狱统计处罚数量
+adjudications_clean %>%
+  group_by(establishment) %>%
+  summarise(total = sum(count)) %>%
+  slice_max(total, n = 10) %>%
+  ggplot(aes(x = reorder(establishment, total), y = total)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Top 10 Prisons by Adjudications (Q1 2023)",
+       x = "Prison",
+       y = "Total disciplinary cases")
+
+```
+
+
+```{r}
 
 ```
