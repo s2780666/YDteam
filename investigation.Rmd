@@ -227,6 +227,37 @@ adjudications_clean %>%
   )
 ```
 
+
+```{r}
+
+# separate males and females
+adjudications_clean %>% 
+  group_by(gender) %>% 
+
+data_distance <- filter(data_distance, !is.na(runner_type))
+
+data_distance <- ungroup(data_distance) %>% 
+  mutate(
+    distance_km = distance..m./1000,
+    avg_speed = distance..m./elapsed.time..s.
+  )
+  
+data_distance %>% 
+  ggplot(
+    aes(x = distance_km, y = avg_speed, color = runner_type)
+  ) +
+  geom_point(alpha = 0.25) +
+  #adding smooth lines
+  geom_smooth(method = lm, se = FALSE) +
+  scale_color_manual(values = c("long" = "orange", "short" = "forestgreen"), labels = c("long" = "Long-Distance Runner", "short" = "Short-Distance Runner")) +
+  theme(legend.title = element_blank()) +
+  labs(
+    x = "Run distance (km)",
+    y = "Run average speed (m/s)",
+    title = "Speed vs Distance for Long- and Short-Distance Runners",
+    subtitle = "Grouped by runners' average distance: >13km vs <7km"
+  )
+    
 ```{r}
 library(dplyr)
 library(ggplot2)
@@ -272,6 +303,10 @@ summary(mod_inter)
 tidy(mod_inter)
 
 
+<<<<<<< HEAD
+
+```
+=======
 p_inter <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
   geom_point(alpha = 0.35, size = 1.6) +
   geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linewidth = 1.1) +
@@ -330,3 +365,4 @@ adjudications_clean %>%
 ```{r}
 
 ```
+>>>>>>> ac8121683b9faabc5068fea8cbc491557ffb61a3
