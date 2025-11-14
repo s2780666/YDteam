@@ -206,11 +206,14 @@ p_share_labels
 # ggsave("age_offence_share.png", p_share_labels, width = 9, height = 6, dpi = 300)
 
 ```
-```{r}
 
-```
-
-
+Topic 2：
+Punishment Length vs Age and Sex
+Question:
+How does punishment length vary between males and females across different age groups?
+introduction:
+In this section, we examine whether males and females receive punishments of different lengths, and whether age plays a role in these differences.
+We use the PunishmentsQ12023 dataset to visualize the relationship between punishment length and age for both sexes.
 ```{r}
 adjudications_clean %>%
   group_by(sex) %>%
@@ -225,41 +228,82 @@ adjudications_clean %>%
 ```
 
 ```{r}
-
 library(dplyr)
 library(ggplot2)
-library(stringr)
+library(broom)
 
-
-load("./data/CSV/punishments.rdata")
-
-
-load("data/CSV/punishments.rdata")
-
-colnames(punishments)
-
-
-pun_clean <- punishments %>%
+#pun_clean <- read.csv("C:/Users/cnmon/Documents/YDteam/data/CSV/PunishmentsQ12023.csv", header = TRUE)
+ 
+load("C:/Users/cnmon/Documents/YDteam/data/CSV/punishments.rdata")
+pun_clean <- punishments
+pun_clean <- pun_clean %>%
   mutate(
-    no_days = as.numeric(`No of days`),
-    age_mid = sapply(str_extract_all(`Age group`, "\\d+"),
-                     function(v) if (length(v) >= 2) mean(as.numeric(v))
-                                 else as.numeric(v[1]))
+    Sex = factor(Sex),                
+    no_days = as.numeric(`No of days`),    
+    age_mid = as.character(`Age group`)
   ) %>%
-  filter(!is.na(no_days), no_days > 0) %>%
-  select(Sex, age_mid, no_days)
+  filter(!is.na(no_days), !is.na(age_mid))
 
-ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
-  geom_point(alpha = 0.25, size = 1.5) +
-  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, size = 1.2) +
+
+mod_main <- lm(no_days ~ Sex + age_mid, data = pun_clean)
+
+cat("\n=== Main model: no_days ~ Sex + age_mid ===\n")
+summary(mod_main)
+tidy(mod_main)
+
+
+p_main <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
+  geom_point(alpha = 0.35, size = 1.6) +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linewidth = 1.1) +
   labs(
-    title = "Punishment Length vs Age (Q1 2023)",
-    x = "Age (years)",
-    y = "Punishment Length (days)",
+    title = "Punishment Length vs Age (Main Effects)",
+    subtitle = "Separate OLS fits by Sex (visualizing main effects)",
+    x = "Age (midpoint, years)",
+    y = "Punishment length (days)",
     color = "Sex"
   ) +
-  theme_minimal(base_size = 14)
+  theme_minimal(base_size = 13)
+p_main
 
+mod_inter <- lm(no_days ~ Sex * age_mid, data = pun_clean)
+
+cat("\n=== Interaction model: no_days ~ Sex * age_mid ===\n")
+summary(mod_inter)
+tidy(mod_inter)
+
+
+p_inter <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
+  geom_point(alpha = 0.35, size = 1.6) +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linewidth = 1.1) +
+  labs(
+    title = "Punishment Length vs Age (Interaction Model)",
+    subtitle = "Lines are OLS fits by Sex; slope difference = interaction",
+    x = "Age (midpoint, years)",
+    y = "Punishment length (days)",
+    color = "Sex"
+  ) +
+  theme_minimal(base_size = 13)
+p_inter
+
+
+
+p_jitter_ci <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex, fill = Sex)) +
+  geom_jitter(width = 0.8, height = 0.2, alpha = 0.25, size = 1.6, shape = 16) +  
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, linewidth = 1.2, alpha = 0.2) +
+  coord_cartesian(xlim = c(15, 60), ylim = c(0, 20)) +                              
+  labs(
+    title    = "Punishment Length vs Age (by Sex, with 95% CI)",
+    subtitle = "Shaded areas show 95% confidence intervals; most punishments <20 days",
+    x = "Age (midpoint of age group, years)",
+    y = "Punishment Length (days)",
+    color = "Sex",
+    fill  = "Sex"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "top")
+
+p_jitter_ci
+# ggsave("punishment_jitter_CI.png", p_jitter_ci, width = 9, height = 6, dpi = 300)
 
 ```
 
@@ -278,6 +322,10 @@ adjudications_clean %>%
 
 ```
 
+
+```{r}
+
+```
 
 ```{r}
 
