@@ -214,155 +214,96 @@ How does punishment length vary between males and females across different age g
 introduction:
 In this section, we examine whether males and females receive punishments of different lengths, and whether age plays a role in these differences.
 We use the PunishmentsQ12023 dataset to visualize the relationship between punishment length and age for both sexes.
-```{r}
-adjudications_clean %>%
-  group_by(sex) %>%
-  summarise(total = sum(count)) %>%
-  ggplot(aes(x = sex, y = total, fill = sex)) +
-  geom_col() +
-  labs(
-    title = "Adjudications by Sex (Q1 2023)",
-    x = "Sex",
-    y = "Total Cases"
-  )
-```
 
-
-```{r}
-
-# separate males and females
-adjudications_clean %>% 
-  group_by(gender) %>% 
-
-data_distance <- filter(data_distance, !is.na(runner_type))
-
-data_distance <- ungroup(data_distance) %>% 
-  mutate(
-    distance_km = distance..m./1000,
-    avg_speed = distance..m./elapsed.time..s.
-  )
-  
-data_distance %>% 
-  ggplot(
-    aes(x = distance_km, y = avg_speed, color = runner_type)
-  ) +
-  geom_point(alpha = 0.25) +
-  #adding smooth lines
-  geom_smooth(method = lm, se = FALSE) +
-  scale_color_manual(values = c("long" = "orange", "short" = "forestgreen"), labels = c("long" = "Long-Distance Runner", "short" = "Short-Distance Runner")) +
-  theme(legend.title = element_blank()) +
-  labs(
-    x = "Run distance (km)",
-    y = "Run average speed (m/s)",
-    title = "Speed vs Distance for Long- and Short-Distance Runners",
-    subtitle = "Grouped by runners' average distance: >13km vs <7km"
-  )
-    
 ```{r}
 library(dplyr)
 library(ggplot2)
-library(broom)
+load("./data/CSV/punishments.rdata")
 
-#pun_clean <- read.csv("C:/Users/cnmon/Documents/YDteam/data/CSV/PunishmentsQ12023.csv", header = TRUE)
- 
-load("C:/Users/cnmon/Documents/YDteam/data/CSV/punishments.rdata")
-pun_clean <- punishments
-pun_clean <- pun_clean %>%
-  mutate(
-    Sex = factor(Sex),                
-    no_days = as.numeric(`No of days`),    
-    age_mid = as.character(`Age group`)
+pun_clean <- punishments %>%
+  rename(
+    sex = Sex,
+    age_group = `Age group`,
+    no_days_raw = `No of days`
   ) %>%
-  filter(!is.na(no_days), !is.na(age_mid))
+  mutate(
+   
+    no_days_raw = ifelse(no_days_raw == ".", NA, no_days_raw),
+    no_days = as.numeric(no_days_raw),
+    sex = factor(sex),
+    age_group = factor(age_group, ordered = TRUE)
+  ) %>%
+  filter(
+    !is.na(sex),
+    !is.na(age_group),
+    !is.na(no_days),
+    no_days > 0
+  )
+age_summary <- pun_clean %>%
+  group_by(age_group) %>%
+  summarise(
+    mean_days = mean(no_days),
+    se_days = sd(no_days) / sqrt(n())
+  )
+ggplot(age_summary, aes(x = age_group, y = mean_days, fill = mean_days)) +
+  
+  geom_col(width = 0.55) +
+  
 
-
-mod_main <- lm(no_days ~ Sex + age_mid, data = pun_clean)
-
-cat("\n=== Main model: no_days ~ Sex + age_mid ===\n")
-summary(mod_main)
-tidy(mod_main)
-
-
-p_main <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
-  geom_point(alpha = 0.35, size = 1.6) +
-  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linewidth = 1.1) +
-  labs(
-    title = "Punishment Length vs Age (Main Effects)",
-    subtitle = "Separate OLS fits by Sex (visualizing main effects)",
-    x = "Age (midpoint, years)",
-    y = "Punishment length (days)",
-    color = "Sex"
+  geom_errorbar(
+    aes(ymin = mean_days - se_days, ymax = mean_days + se_days),
+    width = 0.15,
+    linewidth = 0.5
   ) +
-  theme_minimal(base_size = 13)
-p_main
-
-mod_inter <- lm(no_days ~ Sex * age_mid, data = pun_clean)
-
-cat("\n=== Interaction model: no_days ~ Sex * age_mid ===\n")
-summary(mod_inter)
-tidy(mod_inter)
-
-
-<<<<<<< HEAD
-
-```
-=======
-p_inter <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex)) +
-  geom_point(alpha = 0.35, size = 1.6) +
-  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, linewidth = 1.1) +
-  labs(
-    title = "Punishment Length vs Age (Interaction Model)",
-    subtitle = "Lines are OLS fits by Sex; slope difference = interaction",
-    x = "Age (midpoint, years)",
-    y = "Punishment length (days)",
-    color = "Sex"
+  
+ 
+  geom_text(
+    aes(label = round(mean_days, 1)),
+    vjust = -0.6,
+    size = 3     
   ) +
-  theme_minimal(base_size = 13)
-p_inter
+  
 
-
-
-p_jitter_ci <- ggplot(pun_clean, aes(x = age_mid, y = no_days, color = Sex, fill = Sex)) +
-  geom_jitter(width = 0.8, height = 0.2, alpha = 0.25, size = 1.6, shape = 16) +  
-  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, linewidth = 1.2, alpha = 0.2) +
-  coord_cartesian(xlim = c(15, 60), ylim = c(0, 20)) +                              
-  labs(
-    title    = "Punishment Length vs Age (by Sex, with 95% CI)",
-    subtitle = "Shaded areas show 95% confidence intervals; most punishments <20 days",
-    x = "Age (midpoint of age group, years)",
-    y = "Punishment Length (days)",
-    color = "Sex",
-    fill  = "Sex"
+  scale_fill_gradient(
+    low = "#a5d8ff",
+    high = "#1e90ff",
+    name = "Mean days"
   ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "top")
+  
+  labs(
+    title = "Average Punishment Length by Age Group",
+    x = "Age Group",
+    y = "Average Punishment Length (days)"
+  ) +
+  
+  
+  theme_classic(base_size = 11) +
+  
+  
+  theme(
+    axis.text.x = element_text(angle = 35, hjust = 1),
+    legend.position = "none"  
+  )
 
-p_jitter_ci
-# ggsave("punishment_jitter_CI.png", p_jitter_ci, width = 9, height = 6, dpi = 300)
-
-```
-
-```{r}
-#按监狱统计处罚数量
-adjudications_clean %>%
-  group_by(establishment) %>%
-  summarise(total = sum(count)) %>%
-  slice_max(total, n = 10) %>%
-  ggplot(aes(x = reorder(establishment, total), y = total)) +
-  geom_col(fill = "steelblue") +
-  coord_flip() +
-  labs(title = "Top 10 Prisons by Adjudications (Q1 2023)",
-       x = "Prison",
-       y = "Total disciplinary cases")
 
 ```
 
 
 ```{r}
-#new topic
+age_stats <- pun_clean %>%
+  group_by(age_group) %>%
+  summarise(
+    n = n(),                 # 每组数量
+    mean_days = mean(no_days),
+    median_days = median(no_days),
+    sd_days = sd(no_days),
+    min_days = min(no_days),
+    max_days = max(no_days),
+    iqr_days = IQR(no_days)
+  )
+
+age_stats
+
+
 ```
 
-```{r}
-
-```
->>>>>>> ac8121683b9faabc5068fea8cbc491557ffb61a3
