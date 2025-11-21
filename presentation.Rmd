@@ -53,59 +53,75 @@ style_xaringan(
 
 class: center, middle
 
-## A statement of the overall goal / research question
+##The statement of the overall goal
+
+1：What kinds of crimes are different age groups committing?
+
+2：Is there any difference in length of punishments between males and females in different age groups?
+
+
 
 ---
 
 class: inverse, center, middle
 
-# Section title
+# Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
 
 ---
 
-# Hello World
+# 
 
-- Click the `Knit` button to compile your presentation
 
-- Make sure to commit and push all resulting files to your GitHub repo
+Question:
 
+What kinds of crimes are different age groups committing?
+
+introduction:
+
+Understanding how offence patterns vary across age groups is important for identifying behavioural trends within prisons.
+In the Adjudications dataset (Q1 2023), prisoners are classified into age groups, and each adjudication is associated with an offence category such as Disobedience/disrespect, Unauthorized transactions, or Violence.
+This section examines which age groups are responsible for particular types of offences and whether certain offences are more common among specific age ranges.
 ---
-
 class: inverse, middle, center
-
 # Using xaringan
+---
+```{r, echo=FALSE, fig.align='center', out.width="80%"}
+library(tidyverse)
+library(janitor)
 
+# 你的绘图代码
+adjudications_clean %>%
+  group_by(offence) %>%
+  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total)) %>%
+  slice_head(n = 6) %>%
+  ggplot(aes(x = reorder(offence, total), y = total, fill = offence)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Top 6 offences (Q1 2023)",
+    x = "Offence",
+    y = "Total cases"
+  )
+
+
+```
 ---
 
-# xaringan
+# Punishment Length vs Age and Sex
 
-- The presentation is created using the `xaringan` package
 
-- Use `---` to separate slides and `--` for incremental builds
-
---
-
-- Like this
-
----
 
 # Layouts
+Question:
 
-You can use plain text
+How does punishment length vary between males and females across different age groups?
 
-- or bullet points
+introduction:
 
-.pull-left[
-or text in two columns $^*$
-]
-.pull-right[
-- like
-- this
-]
+In this section, we examine whether males and females receive punishments of different lengths, and whether age plays a role in these differences.
+We use the PunishmentsQ12023 dataset to visualize the relationship between punishment length and age for both sexes.
 
-.footnote[
-[*] And add footnotes
-]
 
 ---
 
