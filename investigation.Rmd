@@ -307,3 +307,67 @@ age_stats
 
 ```
 
+```{r}
+library(tidymodels)
+
+
+
+severe_levels <- c("Violence",
+                   "Unauthorised transactions",
+                   "Drug related offence")
+
+pun_clean <- pun_clean %>% 
+  mutate(
+    severe = if_else(Offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+  )
+
+
+set.seed(123)
+
+data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+
+severe_rec <- 
+  recipe(severe ~ sex + age_group + Ethnicity + Religion,
+         data = data_train) %>%
+  step_dummy(all_nominal_predictors()) %>%  
+  step_zv(all_predictors())        
+
+
+log_spec <- 
+  logistic_reg() %>%
+  set_engine("glm")      
+
+  
+
+severe_wf <- 
+  workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+
+severe_fit <- severe_wf %>% fit(data = data_train)
+
+tidy(severe_fit)
+
+severe_pred <- 
+  predict(severe_fit, data_test, type = "prob") %>%
+  bind_cols(data_test %>% select(severe))
+
+roc_severe <- 
+  roc_curve(severe_pred, truth = severe, .pred_severe)
+
+autoplot(roc_severe)
+
+auc_severe <- 
+  roc_auc(severe_pred, truth = severe, .pred_severe)
+
+auc_severe
+
+
+```
+
