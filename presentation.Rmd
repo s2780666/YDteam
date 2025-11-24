@@ -81,7 +81,8 @@ class: center, middle
 
 class: inverse, center, middle
 
-# Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+# Question:What kinds of crimes are different age groups committing?
+
 
 ---
 
@@ -127,19 +128,11 @@ adjudications_clean %>%
 ```
 ---
 
-# Punishment Length vs Age and Sex
+# Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
 
 
 
-# Layouts
-Question:
-
-How does punishment length vary between males and females across different age groups?
-
-introduction:
-
-In this section, we examine whether males and females receive punishments of different lengths, and whether age plays a role in these differences.
-We use the PunishmentsQ12023 dataset to visualize the relationship between punishment length and age for both sexes.
+# 
 
 
 ---
