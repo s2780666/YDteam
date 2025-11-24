@@ -4,7 +4,7 @@
     <title>Investigation of Prisoner Population Statistics</title>
     <meta charset="utf-8" />
     <meta name="author" content="YD_team   Cecilia, Frank, Junkai, Zhandos" />
-    <meta name="date" content="2025-11-21" />
+    <meta name="date" content="2025-11-24" />
     <script src="libs/header-attrs-2.30/header-attrs.js"></script>
     <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
   </head>
@@ -25,10 +25,11 @@ class: center, middle, inverse, title-slide
 ### University of Edinburgh
 ]
 .date[
-### 2025-11-21
+### 2025-11-24
 ]
 
 ---
+
 
 
 
@@ -67,8 +68,6 @@ Question:
 
 What kinds of crimes are different age groups committing?
 
-
-
 introduction:
 
 Understanding how offence patterns vary across age groups is important for identifying behavioural trends within prisons.
@@ -76,138 +75,25 @@ In the Adjudications dataset (Q1 2023), prisoners are classified into age groups
 This section examines which age groups are responsible for particular types of offences and whether certain offences are more common among specific age ranges.
 ---
 class: inverse, middle, center
-# 
-
-``` r
-library(dplyr)
-library(ggplot2)
-library(tidyverse)
-library(readr)
-library(janitor)
-```
-
-```
-## 
-## Attaching package: 'janitor'
-```
-
-```
-## The following objects are masked from 'package:stats':
-## 
-##     chisq.test, fisher.test
-```
-
-``` r
-adjudications &lt;- read_csv("data/CSV/AdjudicationsQ12023.csv")
-```
-
-```
-## Rows: 24647 Columns: 12
-```
-
-```
-## ── Column specification ────────────────────────────────────────────────────────
-## Delimiter: ","
-## chr (11): Date, Outcomes, Predominant function of establishment, Establishme...
-## dbl  (1): Count
-## 
-## ℹ Use `spec()` to retrieve the full column specification for this data.
-## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-```
-
-``` r
-adjudications_clean &lt;- adjudications %&gt;% 
-  clean_names() %&gt;% 
-  drop_na() %&gt;%  # 修正：drop_na() 不是 drop_no()
-  rename(quarter = date)  # 修正：quarter 不是 auarter
-
-glimpse(adjudications_clean)
-```
-
-```
-## Rows: 24,647
-## Columns: 12
-## $ quarter                               &lt;chr&gt; "Q1", "Q1", "Q1", "Q1", "Q1", "Q…
-## $ outcomes                              &lt;chr&gt; "Dismissed", "Dismissed", "Dismi…
-## $ predominant_function_of_establishment &lt;chr&gt; "Category A (High Security)", "C…
-## $ establishment                         &lt;chr&gt; "Belmarsh", "Belmarsh", "Belmars…
-## $ adjudicator                           &lt;chr&gt; "Governor", "Governor", "Governo…
-## $ sex                                   &lt;chr&gt; "M", "M", "M", "M", "M", "M", "M…
-## $ age_group                             &lt;chr&gt; "18 - 20", "18 - 20", "18 - 20",…
-## $ ethnicity                             &lt;chr&gt; "b Black/ African/ Caribbean/ Bl…
-## $ religion                              &lt;chr&gt; "a Christian", "a Christian", "a…
-## $ offence                               &lt;chr&gt; "Disobedience/disrespect", "Viol…
-## $ detailed_offence                      &lt;chr&gt; "Threats/Abusive and Insulting r…
-## $ count                                 &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1,…
-```
-
-``` r
-colSums(is.na(adjudications_clean))  # 修正：is.na() 不是 is.no()
-```
-
-```
-##                               quarter                              outcomes 
-##                                     0                                     0 
-## predominant_function_of_establishment                         establishment 
-##                                     0                                     0 
-##                           adjudicator                                   sex 
-##                                     0                                     0 
-##                             age_group                             ethnicity 
-##                                     0                                     0 
-##                              religion                               offence 
-##                                     0                                     0 
-##                      detailed_offence                                 count 
-##                                     0                                     0
-```
-
-``` r
-adjudications_clean %&gt;% 
-  group_by(offence) %&gt;% 
-  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %&gt;%  # 修正：na.rm 不是 no.rm
-  arrange(desc(total)) %&gt;% 
-  slice_head(n = 6) %&gt;% 
-  ggplot(aes(x = reorder(offence, total), y = total, fill = offence)) +  # 修正：aes 不是 desc
-  geom_col() + 
-  coord_flip() +  # 修正：coord_flip() 不是 coord_filp()
-  labs(
-    title = "Top 6 offences (Q1 2023)", 
-    x = "Offence", 
-    y = "Total cases"
-  )
-```
-
-&lt;img src="presentation_files/figure-html/unnamed-chunk-2-1.png" width="80%" /&gt;
+# Using xaringan
+---
+&lt;img src="presentation_files/figure-html/unnamed-chunk-2-1.png" width="80%" style="display: block; margin: auto;" /&gt;
 ---
 
-# xaringan
+# Punishment Length vs Age and Sex
 
-- The presentation is created using the `xaringan` package
 
-- Use `---` to separate slides and `--` for incremental builds
-
---
-
-- Like this
-
----
 
 # Layouts
+Question:
 
-You can use plain text
+How does punishment length vary between males and females across different age groups?
 
-- or bullet points
+introduction:
 
-.pull-left[
-or text in two columns `\(^*\)`
-]
-.pull-right[
-- like
-- this
-]
+In this section, we examine whether males and females receive punishments of different lengths, and whether age plays a role in these differences.
+We use the PunishmentsQ12023 dataset to visualize the relationship between punishment length and age for both sexes.
 
-.footnote[
-[*] And add footnotes
-]
 
 ---
 

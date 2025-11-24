@@ -31,7 +31,23 @@ library(tidymodels)
 library(palmerpenguins)
 library(knitr)
 library(xaringanthemer)
+library(janitor)
+library(readr)
+
+adjudications <- read_csv("data/CSV/AdjudicationsQ12023.csv")
+
+ 
+adjudications <- adjudications %>%
+  clean_names()
+
+adjudications_clean <- adjudications %>%
+  drop_na()
+
+
+adjudications_clean <- adjudications_clean %>%
+  rename(quarter = date)
 ```
+
 
 ```{r setup, include=FALSE}
 # For better figure resolution
