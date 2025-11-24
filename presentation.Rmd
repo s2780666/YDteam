@@ -98,8 +98,11 @@ Understanding how offence patterns vary across age groups is important for ident
 In the Adjudications dataset (Q1 2023), prisoners are classified into age groups, and each adjudication is associated with an offence category such as Disobedience/disrespect, Unauthorized transactions, or Violence.
 This section examines which age groups are responsible for particular types of offences and whether certain offences are more common among specific age ranges.
 ---
-class: inverse, middle, center
-# Using xaringan
+class:middle, center
+```{r}
+glimpse(adjudications_clean)
+colSums(is.na(adjudications_clean))
+```
 ---
 ```{r, echo=FALSE, fig.align='center', out.width="80%"}
 library(tidyverse)
