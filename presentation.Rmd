@@ -1,6 +1,5 @@
 ---
 title: "Investigation of Prisoner Population Statistics"
-subtitle: "Presentation subtitle (if any)"
 author: "YD_team <br> Cecilia, Frank, Junkai, Zhandos"
 institute: "University of Edinburgh"
 date: "`r Sys.Date()`"
@@ -81,15 +80,11 @@ class: center, middle
 
 class: inverse, center, middle
 
-# Question:What kinds of crimes are different age groups committing?
+# Question: What kinds of crimes are different age groups committing?
 
 
 ---
-
-# 
-
-
-Question:
+# Question:
 
 What kinds of crimes are different age groups committing?
 
@@ -222,56 +217,246 @@ class: inverse, center, middle
 
 
 ---
-#
-Question: How does punishment length vary between males and females across different age groups
+
+#Question: 
+
+How does punishment length vary between males and females across different age groups
 
 introduction:
 
 In this section, we examine whether males and females receive punishments of different lengths, and whether age plays a role in these differences.
 We use the PunishmentsQ12023 dataset to visualize the relationship between punishment length and age for both sexes.
 
-.pull-left[
-- Some text
-- goes here
-]
-.pull-right[
-```{r warning=FALSE, out.width="100%", fig.width=4, echo=FALSE}
-# see how I changed out.width and fig.width from defaults
-# to make the figure bigger
-ggplot(penguins, aes(x = bill_length_mm, y = species, color = species)) +
-  geom_boxplot() +
-  theme_minimal()
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+load("./data/CSV/punishments.rdata")
+
+pun_clean <- punishments %>%
+  rename(
+    sex = Sex,
+    age_group = `Age group`,
+    no_days_raw = `No of days`
+  ) %>%
+  mutate(
+    no_days_raw = ifelse(no_days_raw == ".", NA, no_days_raw),
+    no_days = as.numeric(no_days_raw),
+    sex = factor(sex),
+    age_group = factor(age_group, ordered = TRUE)
+  ) %>%
+  filter(
+    !is.na(sex),
+    !is.na(age_group),           
+    !is.na(no_days),
+    no_days > 0
+  )
+
+age_summary <- pun_clean %>%
+  group_by(age_group) %>%
+  summarise(
+    mean_days = mean(no_days),
+    se_days = sd(no_days) / sqrt(n()),
+    .groups = "drop"
+  )
+
+p_age_bar <- ggplot(age_summary, aes(x = age_group, y = mean_days, fill = mean_days)) +
+  geom_col(width = 0.55) +
+  geom_errorbar(
+    aes(ymin = mean_days - se_days, ymax = mean_days + se_days),
+    width = 0.15,
+    linewidth = 0.5
+  ) +
+  geom_text(
+    aes(label = round(mean_days, 1)),
+    vjust = -0.6,
+    size = 3
+  ) +
+  scale_fill_gradient(
+    low = "#a5d8ff",
+    high = "#1e90ff",
+    name = "Mean days"
+  ) +
+  labs(
+    title = "Average Punishment Length by Age Group",
+    x = "Age Group",
+    y = "Average Punishment Length (days)"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 35, hjust = 1),
+    legend.position = "none"
+  )
 ```
-]
 
 ---
+
+# Average Punishment Length by Age Group
+
+```{r, echo=FALSE, fig.align='center', out.width="75%"}
+p_age_bar
+```
+
+---
+class: small
 
 # Tables
 
-If you want to generate a table, make sure it is in the HTML format (instead of Markdown or other formats), e.g.,
+the sample size for each age group,
+the average punishment length (mean_days),
+the median punishment length (median_days),
+the standard deviation (sd_days),
+the minimum value (min_days),
+the maximum value (max_days),
+the interquartile range (IQR)
+```{r, echo=FALSE, fig.align='center', out.width="60%"}
+age_stats <- pun_clean %>%
+  group_by(age_group) %>%
+  summarise(
+    n = n(),
+    mean_days = mean(no_days),
+    median_days = median(no_days),
+    sd_days = sd(no_days),
+    min_days = min(no_days),
+    max_days = max(no_days),
+    iqr_days = IQR(no_days)
+  )
 
-```{r iris-table, echo = FALSE}
-kable(head(iris), format = "html")
+age_stats
 ```
 
 ---
 
-# Images
+# model
 
-```{r castle, echo = FALSE, out.width = "55%", fig.align = "center", fig.cap = "Image credit: Photo by Jörg Angeli on Unsplash."}
-include_graphics("img/edinburgh-castle.jpg")
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(tidymodels)
+library(dplyr)
+library(broom)
+library(gt)
+library(stringr)
+
+# Convert to binary label
+severe_levels <- c("Violence",
+                   "Unauthorised transactions",
+                   "Drug related offence")
+
+pun_clean <- pun_clean %>% 
+  mutate(
+    severe = if_else(Offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+  )
+
+set.seed(123)
+data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+log_spec <- logistic_reg() %>%
+  set_engine("glm")
+
+severe_rec <- recipe(
+  severe ~ sex + age_group + Ethnicity + Religion,
+  data = data_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors())
+
+severe_wf <- workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+severe_fit <- fit(severe_wf, data = data_train)
+
+# 全部系数 tidy
+coef_tbl <- tidy(severe_fit) %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    term = str_replace_all(term, "_", " "),
+    term = str_trunc(term, 28),
+    estimate  = round(estimate, 3),
+    std.error = round(std.error, 3),
+    statistic = round(statistic, 2),
+    p.value   = signif(p.value, 3)
+  )
+
+# 拆成上下两部分
+half_n <- ceiling(nrow(coef_tbl) / 2)
+coef_tbl_1 <- coef_tbl[1:half_n, ]
+coef_tbl_2 <- coef_tbl[(half_n+1):nrow(coef_tbl), ]
 ```
 
-Or you can also include a full page image. See next slide.
 
 ---
 
+# Logistic Regression Results
 
-class: inverse, center, middle
-background-image: url(img/edinburgh-castle.jpg)
-background-size: contain
+```{r, echo=FALSE, results='asis'}
+
+# Logistic Regression Coefficients (Part 1)
+
+```{r, echo=FALSE, results='asis'}
+coef_tbl_1 %>%
+  select(term, estimate, std.error, statistic, p.value) %>%
+  gt() %>%
+  tab_header(
+    title = md("**Logistic Regression Results – Part 1**")
+  ) %>%
+  cols_label(
+    term      = "Predictor",
+    estimate  = "Est.",
+    std.error = "SE",
+    statistic = "z",
+    p.value   = "p"
+  ) %>%
+  tab_options(
+    table.font.size = px(14),
+    data_row.padding = px(2),
+    heading.title.font.size = px(18),
+    column_labels.font.size = px(14)
+  ) %>%
+  cols_width(
+    term ~ px(230),
+    everything() ~ px(70)
+  )
+```
+
 ---
 
+# Logistic Regression Coefficients (Part 2)
+
+```{r, echo=FALSE, results='asis'}
+coef_tbl_2 %>%
+  select(term, estimate, std.error, statistic, p.value) %>%
+  gt() %>%
+  tab_header(
+    title = md("**Logistic Regression Results – Part 2**")
+  ) %>%
+  cols_label(
+    term      = "Predictor",
+    estimate  = "Est.",
+    std.error = "SE",
+    statistic = "z",
+    p.value   = "p"
+  ) %>%
+  tab_options(
+    table.font.size = px(14),
+    data_row.padding = px(2),
+    heading.title.font.size = px(18),
+    column_labels.font.size = px(14)
+  ) %>%
+  cols_width(
+    term ~ px(230),
+    everything() ~ px(70)
+  )
+```
+
+
+
+
+
+
+---
 # Math Expressions
 
 You can write LaTeX math expressions inside a pair of dollar signs, e.g. &#36;\alpha+\beta$ renders $\alpha+\beta$. You can use the display style with double dollar signs:
@@ -292,13 +477,19 @@ Limitations:
 
 ---
 
-# Feeling adventurous?
+# Conclusion
+Topic 1 – Conclusion
 
-- Want to find out more about `xaringan`? See https://slides.yihui.name/xaringan/#1.
+Our analysis shows that different age groups tend to commit different kinds of offences.
+Younger prisoners are more often involved in rule-breaking behaviours such as disobedience or disrespect, while older age groups show higher involvement in transactional or more serious offences.
+This means that offence patterns are clearly linked to age, and age groups do not behave in the same way inside prisons.
 
-- You are welcome to use the default styling of the slides. In fact, that's what I expect majority of you will do. You will differentiate yourself with the content of your presentation.
+Topic 2 – Conclusion
 
-- But some of you might want to play around with slide styling. The 
-`xaringanthemer` provides some solutions for this that: https://pkg.garrickadenbuie.com/xaringanthemer.
+Punishment length also varies across age groups.
+Although the differences are not very large, some age groups consistently receive slightly longer punishments than others.
+This suggests that age plays a role in how long punishments are assigned, and that disciplinary outcomes may be somewhat different depending on the age group.
 
-- And if you want more bells and whistles, there is also `xaringanExtra`: https://pkg.garrickadenbuie.com/xaringanExtra.
+---
+
+# Thanks for watching!
