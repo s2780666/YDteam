@@ -378,3 +378,22 @@ auc_severe
 
 
 ```
+```{r}
+library(yardstick)
+library(ggplot2)
+
+# 生成分类预测（分类结果而不是概率）
+severe_pred_class <- predict(severe_fit, data_test) %>%
+  bind_cols(data_test %>% select(severe))
+
+# 混淆矩阵
+conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
+  autoplot(type = "heatmap") +
+  scale_fill_gradient(low = "#a5d8ff", high = "#1e90ff") +
+  labs(title = "Confusion Matrix for Logistic Regression",
+       x = "Truth",
+       y = "Prediction") +
+  theme_minimal()
+
+```
+
