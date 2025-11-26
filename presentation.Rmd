@@ -79,7 +79,7 @@ Age influences both the types of offences prisoners commit and the length of pun
 class: inverse, center, middle
 
 #Topic 1：
-Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+#Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
 
 
 ---
@@ -87,11 +87,10 @@ Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
 
 What kinds of crimes are different age groups committing?
 
-introduction:
+Introduction:
 
-Understanding how offence patterns vary across age groups is important for identifying behavioural trends within prisons.
-In the Adjudications dataset (Q1 2023), prisoners are classified into age groups, and each adjudication is associated with an offence category such as Disobedience/disrespect, Unauthorized transactions, or Violence.
-This section examines which age groups are responsible for particular types of offences and whether certain offences are more common among specific age ranges.
+Understanding how offences differ across age groups helps reveal behaviour patterns in prisons.
+Using the Adjudications Q1 2023 dataset, where each case has an age group and offence type, we look at which offences are most common at different ages and how these patterns change across age groups.
 ---
 class:middle, center
 ```{r, echo=FALSE, fig.align='center', out.width="60%"}
@@ -211,7 +210,8 @@ p_share_labels
 ---
 class: inverse, center, middle
 
-# Topic 2：Punishment Length Across Age Groups
+# Topic 2：
+#Punishment Length Across Age Groups
  
 
 
@@ -223,9 +223,8 @@ How does punishment length vary across different age groups?
 
 Introduction:
 
-This section focuses on whether punishment length changes with age.
-Using the PunishmentsQ12023 dataset, we investigate how the average number of days assigned as punishment differs across age groups.
-By summarising and visualising these patterns, we aim to identify whether certain age ranges tend to receive longer or shorter punishments, and what this may suggest about behavioural or disciplinary differences among age groups.
+This section focus on whether punishment length varies across age groups.
+Using the Punishments Q1 2023 dataset, we compare the average number of punishment days across different ages to see which groups tend to receive longer or shorter punishments and what these differences might suggest.
 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
@@ -451,6 +450,62 @@ coef_tbl_2 %>%
   )
 ```
 
+# ROC Curve for Severe vs Not Severe
+```{r setup_severe_model, include=FALSE, message=FALSE, warning=FALSE}
+library(tidymodels)
+library(dplyr)
+
+severe_levels <- c("Violence",
+                   "Unauthorised transactions",
+                   "Drug related offence")
+
+pun_clean <- pun_clean %>% 
+  mutate(
+    severe = if_else(Offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+  )
+
+set.seed(123)
+data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+log_spec <- logistic_reg() %>% set_engine("glm")
+
+severe_rec <- recipe(
+  severe ~ sex + age_group + Ethnicity + Religion,
+  data = data_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors())
+
+severe_wf <- workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+severe_fit <- fit(severe_wf, data = data_train)
+
+severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
+  bind_cols(data_test %>% select(severe))
+
+roc_severe <- roc_curve(severe_pred, truth = severe, .pred_severe)
+auc_severe <- roc_auc(severe_pred, truth = severe, .pred_severe)
+```
+
+
+```{r, echo=FALSE, fig.align='center', out.width="70%"}
+library(ggplot2)
+
+ggplot(roc_severe, aes(x = 1 - specificity, y = sensitivity)) +
+  geom_line(size = 1) +
+  geom_abline(linetype = "dotted") +
+  labs(
+    title = paste("ROC Curve (AUC =", round(auc_severe$.estimate, 3), ")"),
+    x = "1 - Specificity",
+    y = "Sensitivity"
+  ) +
+  theme_minimal(base_size = 12)
+```
 
 ---
 
