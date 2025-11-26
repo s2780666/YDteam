@@ -1,5 +1,5 @@
 ---
-title: "Investigating Crime and Punishment Patterns Across Age Groups in UK Prisons."
+title: "Investigating Punishments Dealt Across Age Groups and Sexes in UK Prisons."
 author: "by YDTeam: Cecilia, Frank, Junkai, Zhandos"
 date: "`r Sys.Date()`"
 output: html_document
@@ -31,7 +31,7 @@ library(tidyverse)
 
 ## Research Question
 
-What kinds of offences are different age groups committing? Are punishments dealt fairly across different age groups and sexes?
+Are punishments dealt fairly across age groups and sexes?
 
 
 
