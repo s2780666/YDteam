@@ -450,6 +450,7 @@ coef_tbl_2 %>%
   )
 ```
 
+---
 # ROC Curve for Severe vs Not Severe
 ```{r setup_severe_model, include=FALSE, message=FALSE, warning=FALSE}
 library(tidymodels)
@@ -493,11 +494,11 @@ auc_severe <- roc_auc(severe_pred, truth = severe, .pred_severe)
 ```
 
 
-```{r, echo=FALSE, fig.align='center', out.width="70%"}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
 library(ggplot2)
 
 ggplot(roc_severe, aes(x = 1 - specificity, y = sensitivity)) +
-  geom_line(size = 1) +
+  geom_line(linewidth = 1) +
   geom_abline(linetype = "dotted") +
   labs(
     title = paste("ROC Curve (AUC =", round(auc_severe$.estimate, 3), ")"),
@@ -506,6 +507,7 @@ ggplot(roc_severe, aes(x = 1 - specificity, y = sensitivity)) +
   ) +
   theme_minimal(base_size = 12)
 ```
+
 
 ---
 
