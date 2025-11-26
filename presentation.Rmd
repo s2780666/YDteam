@@ -74,12 +74,13 @@ Age influences both the types of offences prisoners commit and the length of pun
 
 
 
+
 ---
 
 class: inverse, center, middle
 
-#Topic 1：
-#Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+# Topic 1：
+Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
 
 
 ---
@@ -196,6 +197,8 @@ p_share_labels <- age_offence_share |>
     fill = "Offence"
   ) +
   theme_minimal(base_size = 12)
+
+# This visualization shows us that, proportionally speaking, violence is a more common offence among younger inmates. We can also see that disobedience/disrespect is more common among older inmates. This data is useful as differences in severity of offences committed by different age groups may be a factor in differences in length of punishments.
 ```
 
 ---
@@ -211,7 +214,7 @@ p_share_labels
 class: inverse, center, middle
 
 # Topic 2：
-#Punishment Length Across Age Groups
+Punishment Length Across Age Groups
  
 
 
@@ -450,8 +453,8 @@ coef_tbl_2 %>%
   )
 ```
 
+
 ---
-# ROC Curve for Severe vs Not Severe
 ```{r setup_severe_model, include=FALSE, message=FALSE, warning=FALSE}
 library(tidymodels)
 library(dplyr)
@@ -467,10 +470,12 @@ pun_clean <- pun_clean %>%
     severe = factor(severe, levels = c("not_severe", "severe"))
   )
 
+
 set.seed(123)
 data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
 data_train <- training(data_split)
 data_test  <- testing(data_split)
+
 
 log_spec <- logistic_reg() %>% set_engine("glm")
 
@@ -486,13 +491,13 @@ severe_wf <- workflow() %>%
 
 severe_fit <- fit(severe_wf, data = data_train)
 
+
 severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
   bind_cols(data_test %>% select(severe))
 
 roc_severe <- roc_curve(severe_pred, truth = severe, .pred_severe)
 auc_severe <- roc_auc(severe_pred, truth = severe, .pred_severe)
 ```
-
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
 library(ggplot2)
@@ -507,6 +512,9 @@ ggplot(roc_severe, aes(x = 1 - specificity, y = sensitivity)) +
   ) +
   theme_minimal(base_size = 12)
 ```
+
+
+
 
 
 ---
