@@ -341,7 +341,7 @@ log_spec <-
   set_engine("glm") 
 
 severe_rec <- recipe(
-  severe ~ sex + age_group + Ethnicity + Religion, # formula
+  severe ~ age_group , # formula
   data = data_train) %>%                           # data to use for cataloguing names and types of variables
   step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
   step_zv(all_predictors())        #Remove zero variance variables
