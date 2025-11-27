@@ -341,7 +341,7 @@ log_spec <-
   set_engine("glm") 
 
 severe_rec <- recipe(
-  severe ~ sex + age_group + Ethnicity + Religion, # formula
+  severe ~ age_group , # formula
   data = data_train) %>%                           # data to use for cataloguing names and types of variables
   step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
   step_zv(all_predictors())        #Remove zero variance variables
@@ -394,6 +394,15 @@ conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
        x = "Truth",
        y = "Prediction") +
   theme_minimal()
+
+
+
+# 计算 sensitivity（查全率 / 召回率）
+sensitivity(severe_pred_class, truth = severe, estimate = .pred_class)
+
+# 计算 specificity（查准率）
+specificity(severe_pred_class, truth = severe, estimate = .pred_class)
+
 
 ```
 
