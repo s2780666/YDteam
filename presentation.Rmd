@@ -390,71 +390,7 @@ coef_tbl_2 <- coef_tbl[(half_n+1):nrow(coef_tbl), ]
 
 
 ---
-
-# Logistic Regression Results
-
-```{r, echo=FALSE, results='asis'}
-
-# Logistic Regression Coefficients (Part 1)
-
-```{r, echo=FALSE, results='asis'}
-coef_tbl_1 %>%
-  select(term, estimate, std.error, statistic, p.value) %>%
-  gt() %>%
-  tab_header(
-    title = md("**Logistic Regression Results – Part 1**")
-  ) %>%
-  cols_label(
-    term      = "Predictor",
-    estimate  = "Est.",
-    std.error = "SE",
-    statistic = "z",
-    p.value   = "p"
-  ) %>%
-  tab_options(
-    table.font.size = px(14),
-    data_row.padding = px(2),
-    heading.title.font.size = px(18),
-    column_labels.font.size = px(14)
-  ) %>%
-  cols_width(
-    term ~ px(230),
-    everything() ~ px(70)
-  )
-```
-
----
-
-# Logistic Regression Coefficients (Part 2)
-
-```{r, echo=FALSE, results='asis'}
-coef_tbl_2 %>%
-  select(term, estimate, std.error, statistic, p.value) %>%
-  gt() %>%
-  tab_header(
-    title = md("**Logistic Regression Results – Part 2**")
-  ) %>%
-  cols_label(
-    term      = "Predictor",
-    estimate  = "Est.",
-    std.error = "SE",
-    statistic = "z",
-    p.value   = "p"
-  ) %>%
-  tab_options(
-    table.font.size = px(14),
-    data_row.padding = px(2),
-    heading.title.font.size = px(18),
-    column_labels.font.size = px(14)
-  ) %>%
-  cols_width(
-    term ~ px(230),
-    everything() ~ px(70)
-  )
-```
-
-
----
+We evaluated the model using an ROC curve, and the AUC of 0.55 suggests no significant effect of age on crime severity classification.
 ```{r setup_severe_model, include=FALSE, message=FALSE, warning=FALSE}
 library(tidymodels)
 library(dplyr)
@@ -564,9 +500,28 @@ severe_pred %>%
 
 ```
 
+---
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
+library(yardstick)
+library(ggplot2)
+
+severe_pred_class <- predict(severe_fit, data_test) %>%
+  bind_cols(data_test %>% select(severe))
+
+conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
+  autoplot(type = "heatmap") +
+  scale_fill_gradient(low = "#a5d8ff", high = "#1e90ff") +
+  labs(title = "Confusion Matrix for Logistic Regression",
+       x = "Truth",
+       y = "Prediction") +
+  theme_minimal()
+
+sensitivity(severe_pred_class, truth = severe, estimate = .pred_class)
 
 
+specificity(severe_pred_class, truth = severe, estimate = .pred_class)
 
+```
 
 ---
 
