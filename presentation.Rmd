@@ -583,6 +583,10 @@ Punishment length also varies across age groups.
 Although the differences are not very large, some age groups consistently receive slightly longer punishments than others.
 This suggests that age plays a role in how long punishments are assigned, and that disciplinary outcomes may be somewhat different depending on the age group.
 
+Overall conclusion
+
+Our visualisations suggested that there is a tendancy for offenders in certain age groups to commit certain crimes more than other age groups. The low AUC value for our ROC curve suggests there is little or no link between age and severity of offences, this appears to be due to the fact that offences we can reasonably label as 'severe' are too broad and to get more insight we may have to look at a more specific kind of offence.
+
 ---
 
 # Thanks for watching!
