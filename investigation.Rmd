@@ -395,5 +395,14 @@ conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
        y = "Prediction") +
   theme_minimal()
 
+
+
+# 计算 sensitivity（查全率 / 召回率）
+sensitivity(severe_pred_class, truth = severe, estimate = .pred_class)
+
+# 计算 specificity（查准率）
+specificity(severe_pred_class, truth = severe, estimate = .pred_class)
+
+
 ```
 
