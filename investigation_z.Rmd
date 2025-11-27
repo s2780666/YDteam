@@ -33,16 +33,16 @@ library(janitor)
 adjudications <- adjudications %>%
   clean_names()
 
-adjudications_clean <- adjudications %>%
+adj_clean <- adjudications %>%
   drop_na()
 
 
-adjudications_clean <- adjudications_clean %>%
+adj_clean <- adj_clean %>%
   rename(quarter = date)
 
 
-glimpse(adjudications_clean)
-colSums(is.na(adjudications_clean))
+glimpse(adj_clean)
+colSums(is.na(adj_clean))
 
 load("./data/CSV/punishments.rdata")
 
@@ -74,7 +74,7 @@ library(dplyr)
 library(ggplot2)
 
 
-adjudications_clean %>%
+adj_clean %>%
   filter(sex == "M") %>% 
   group_by(offence) %>%
   summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
@@ -89,7 +89,7 @@ adjudications_clean %>%
     y = "Total cases"
   )
 
-adjudications_clean %>%
+adj_clean %>%
   filter(sex == "F") %>% 
   group_by(offence) %>%
   summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
@@ -110,11 +110,11 @@ adjudications_clean %>%
 ```{r}
 # check how many people are in each age group
 
-adjudications_clean %>%
+adj_clean %>%
   filter(age_group == "15 - 17") %>% 
   summarise(count = n())
 
-age_offence_counts <- adjudications_clean %>% 
+age_offence_counts <- adj_clean %>% 
   group_by(age_group) %>% 
   count(age_group)
 age_offence_counts
@@ -203,46 +203,27 @@ p_share_labels <- age_offence_share |>
 library(tidymodels)
 
 pun_clean <- pun_clean %>% 
-  if(age_group != "70 and over") {
-    upper_age <- strtoi(substr(age_group, 6, 7))
-    }
   mutate(
-    age_midpoint = strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))
-  )
-pun_clean
+    age_midpoint = (strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))) / 2
+      ) %>% 
+  drop_na()
+
+library(ggplot2)
+ggplot(data = pun_clean, aes(x = age_midpoint, y = Sum)) +
+  geom_point() +
+  geom_smooth(method = "lm",
+              se = FALSE)
 
 
+pun_clean_fit <- linear_reg() %>% 
+  set_engine("lm") %>% 
+  fit(Sum ~ age_midpoint, data = pun_clean)
 
+pun_clean_fit_aug <- augment(pun_clean_fit$fit)
 
-# Fix random numbers by setting the seed 
-# Enables analysis to be reproducible when random numbers are used 
-set.seed(123)
-
-# Put 80% of the data into the training set 
-data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
-# Create data frames for the two sets:
-data_train <- training(data_split)
-data_test  <- testing(data_split)
-
-
-#Fit a model to the training dataset
-log_spec <- 
-  logistic_reg() %>%
-  set_engine("glm") 
-
-severe_rec <- recipe(
-  severe ~ sex + age_group + Ethnicity + Religion, # formula
-  data = data_train) %>%                           # data to use for cataloguing names and types of variables
-  step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
-  step_zv(all_predictors())        #Remove zero variance variables
-
-summary(severe_rec)
-
-
-severe_wf <- 
-  workflow() %>%
-  add_recipe(severe_rec) %>%
-  add_model(log_spec)
+ggplot(pun_clean_fit_aug, mapping = aes(x = .fitted, y = .resid)) +
+  geom_point(alpha = 0.5) +
+  geom_hline(yintercept = 0, color = "darkgrey", lty = "dashed")
 
 
 severe_fit <- severe_wf %>% fit(data = data_train)
@@ -265,6 +246,137 @@ auc_severe <-
   roc_auc(severe_pred, truth = severe, .pred_severe)
 
 auc_severe
+
+
+```
+
+```{r}
+library(tidymodels)
+library(ggplot2)
+
+pun_clean <- pun_clean %>% 
+  mutate(
+    age_midpoint = (strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))) / 2
+      ) %>% 
+  drop_na()
+
+poly_rec <- recipe(Sum ~ age_midpoint, data = pun_clean) %>%
+  step_poly(age, degree = 2)
+
+poly_model
+
+```
+
+```{r}
+adj_clean %>%
+  group_by(detailed_offence) %>%
+  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total)) %>%
+  slice_head(n = 20)
+```
+
+# severe offences: Possession of unauthorised articles (???), Threats / Abusive and Insulting racist words/behaviour, Cause damage to any part of a prison, Drug related offence, Fights with any person, Endangers health/safety of any person, Assault on a prisoner, Assault on staff, Commits any assault	, Obstructs an officer executing his duty, Attempts: Assault on staff, Assault on any other person
+
+
+```{r}
+library(tidymodels)
+
+
+# Convert offence categories into a binary classification variable (severe vs not_severe)
+severe_levels <- c("Possession of unauthorised articles", "Threats / Abusive and Insulting racist words/behaviour", "Cause damage to any part of a prison, Drug related offence", "Fights with any person", "Endangers health/safety of any person", "Assault on a prisoner", "Assault on staff", "Commits any assault", "Obstructs an officer executing his duty", "Attempts: Assault on staff", "Assault on any other person")
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    severe = if_else(detailed_offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+    )
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    age_midpoint = (strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))) / 2
+      ) %>% 
+  drop_na()
+
+
+# Fix random numbers by setting the seed 
+# Enables analysis to be reproducible when random numbers are used 
+set.seed(123)
+
+# Put 80% of the data into the training set 
+data_split <- initial_split(adj_clean, prop = 0.8, strata = severe)
+# Create data frames for the two sets:
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+
+#Fit a model to the training dataset
+log_spec <- logistic_reg() %>%
+  set_engine("glm") 
+
+severe_rec <- recipe(
+  severe ~ age_midpoint , # formula
+  data = data_train) %>%                           # data to use for cataloging names and types of variables
+  step_unknown(all_nominal_predictors())%>%
+  step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
+  step_zv(all_predictors())        #Remove zero variance variables
+
+summary(severe_rec)
+
+
+severe_wf <- 
+  workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+
+severe_fit <- severe_wf %>% fit(data = data_train)
+
+tidy(severe_fit) %>% print()
+
+#Predict probabilities on the testing dataset
+severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
+  bind_cols(data_test)
+
+
+#create ROC diagram and calculate the area
+severe_pred %>%  
+  roc_curve(truth = severe, .pred_severe, event_level = "second") %>% 
+  autoplot()
+
+auc_severe <- 
+  roc_auc(severe_pred, truth = severe, .pred_severe, event_level = "second")
+
+auc_severe
+
+
+```
+
+
+```{r}
+library(yardstick)
+library(ggplot2)
+
+# 生成分类预测（分类结果而不是概率）
+severe_pred_class <- predict(severe_fit, data_test) %>%
+  bind_cols(data_test %>% select(severe))
+
+# 混淆矩阵
+conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
+  autoplot(type = "heatmap") +
+  scale_fill_gradient(low = "#a5d8ff", high = "#1e90ff") +
+  labs(title = "Confusion Matrix for Logistic Regression",
+       x = "Truth",
+       y = "Prediction") +
+  theme_minimal()
+
+
+
+# 计算 sensitivity（查全率 / 召回率）
+sensitivity(severe_pred_class, truth = severe, estimate = .pred_class)
+
+# 计算 specificity（查准率）
+specificity(severe_pred_class, truth = severe, estimate = .pred_class)
 
 
 ```
