@@ -390,6 +390,7 @@ coef_tbl_2 <- coef_tbl[(half_n+1):nrow(coef_tbl), ]
 
 
 ---
+We evaluated the model using an ROC curve, and the AUC of 0.55 suggests no significant effect of age on crime severity classification.
 ```{r setup_severe_model, include=FALSE, message=FALSE, warning=FALSE}
 library(tidymodels)
 library(dplyr)
@@ -436,16 +437,67 @@ auc_severe <- roc_auc(severe_pred, truth = severe, .pred_severe)
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
 library(ggplot2)
+library(tidymodels)
 
-ggplot(roc_severe, aes(x = 1 - specificity, y = sensitivity)) +
-  geom_line(linewidth = 1) +
-  geom_abline(linetype = "dotted") +
-  labs(
-    title = paste("ROC Curve (AUC =", round(auc_severe$.estimate, 3), ")"),
-    x = "1 - Specificity",
-    y = "Sensitivity"
-  ) +
-  theme_minimal(base_size = 12)
+
+# Convert offence categories into a binary classification variable (severe vs not_severe)
+severe_levels <- c("Possession of unauthorised articles", "Threats / Abusive and Insulting racist words/behaviour", "Cause damage to any part of a prison, Drug related offence", "Fights with any person", "Endangers health/safety of any person", "Assault on a prisoner", "Assault on staff", "Commits any assault", "Obstructs an officer executing his duty", "Attempts: Assault on staff", "Assault on any other person")
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    severe = if_else(detailed_offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+    )
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    age_midpoint = (strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))) / 2
+      ) %>% 
+  drop_na()
+
+
+# Fix random numbers by setting the seed 
+# Enables analysis to be reproducible when random numbers are used 
+set.seed(123)
+
+# Put 80% of the data into the training set 
+data_split <- initial_split(adj_clean, prop = 0.8, strata = severe)
+# Create data frames for the two sets:
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+
+#Fit a model to the training dataset
+log_spec <- logistic_reg() %>%
+  set_engine("glm") 
+
+severe_rec <- recipe(
+  severe ~ age_midpoint , # formula
+  data = data_train) %>%                           # data to use for cataloging names and types of variables
+  step_unknown(all_nominal_predictors())%>%
+  step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
+  step_zv(all_predictors())        #Remove zero variance variables
+
+
+severe_wf <- 
+  workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+
+severe_fit <- severe_wf %>% fit(data = data_train)
+
+#Predict probabilities on the testing dataset
+severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
+  bind_cols(data_test)
+
+
+#create ROC diagram and calculate the area
+severe_pred %>%  
+  roc_curve(truth = severe, .pred_severe, event_level = "second") %>% 
+  autoplot()
+
 ```
 
 ---
