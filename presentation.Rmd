@@ -328,7 +328,16 @@ age_stats
 
 ---
 
-# model
+# Model
+
+###Question:
+Is the determination of serious crime affected by age?
+
+###Modelling choosing:
+logical regression(severe ~ age_group)
+
+###Reason:
+Logistic regression is ideal for binary outcomes (severe or not)
 
 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
@@ -338,171 +347,17 @@ library(broom)
 library(gt)
 library(stringr)
 
-# Convert to binary label
-severe_levels <- c("Violence",
-                   "Unauthorised transactions",
-                   "Drug related offence")
-
-pun_clean <- pun_clean %>% 
-  mutate(
-    severe = if_else(Offence %in% severe_levels,
-                     "severe", "not_severe"),
-    severe = factor(severe, levels = c("not_severe", "severe"))
-  )
-
-set.seed(123)
-data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
-data_train <- training(data_split)
-data_test  <- testing(data_split)
-
-log_spec <- logistic_reg() %>%
-  set_engine("glm")
-
-severe_rec <- recipe(
-  severe ~ sex + age_group + Ethnicity + Religion,
-  data = data_train) %>%
-  step_dummy(all_nominal_predictors()) %>%
-  step_zv(all_predictors())
-
-severe_wf <- workflow() %>%
-  add_recipe(severe_rec) %>%
-  add_model(log_spec)
-
-severe_fit <- fit(severe_wf, data = data_train)
-
-# 全部系数 tidy
-coef_tbl <- tidy(severe_fit) %>%
-  filter(term != "(Intercept)") %>%
-  mutate(
-    term = str_replace_all(term, "_", " "),
-    term = str_trunc(term, 28),
-    estimate  = round(estimate, 3),
-    std.error = round(std.error, 3),
-    statistic = round(statistic, 2),
-    p.value   = signif(p.value, 3)
-  )
-
-# 拆成上下两部分
-half_n <- ceiling(nrow(coef_tbl) / 2)
-coef_tbl_1 <- coef_tbl[1:half_n, ]
-coef_tbl_2 <- coef_tbl[(half_n+1):nrow(coef_tbl), ]
-```
-
-
----
-
-# Logistic Regression Results
-
-```{r, echo=FALSE, results='asis'}
-
-# Logistic Regression Coefficients (Part 1)
-
-```{r, echo=FALSE, results='asis'}
-coef_tbl_1 %>%
-  select(term, estimate, std.error, statistic, p.value) %>%
-  gt() %>%
-  tab_header(
-    title = md("**Logistic Regression Results – Part 1**")
-  ) %>%
-  cols_label(
-    term      = "Predictor",
-    estimate  = "Est.",
-    std.error = "SE",
-    statistic = "z",
-    p.value   = "p"
-  ) %>%
-  tab_options(
-    table.font.size = px(14),
-    data_row.padding = px(2),
-    heading.title.font.size = px(18),
-    column_labels.font.size = px(14)
-  ) %>%
-  cols_width(
-    term ~ px(230),
-    everything() ~ px(70)
-  )
 ```
 
 ---
 
-# Logistic Regression Coefficients (Part 2)
-
-```{r, echo=FALSE, results='asis'}
-coef_tbl_2 %>%
-  select(term, estimate, std.error, statistic, p.value) %>%
-  gt() %>%
-  tab_header(
-    title = md("**Logistic Regression Results – Part 2**")
-  ) %>%
-  cols_label(
-    term      = "Predictor",
-    estimate  = "Est.",
-    std.error = "SE",
-    statistic = "z",
-    p.value   = "p"
-  ) %>%
-  tab_options(
-    table.font.size = px(14),
-    data_row.padding = px(2),
-    heading.title.font.size = px(18),
-    column_labels.font.size = px(14)
-  ) %>%
-  cols_width(
-    term ~ px(230),
-    everything() ~ px(70)
-  )
-```
-
-
----
-```{r setup_severe_model, include=FALSE, message=FALSE, warning=FALSE}
-library(tidymodels)
-library(dplyr)
-
-severe_levels <- c("Violence",
-                   "Unauthorised transactions",
-                   "Drug related offence")
-
-pun_clean <- pun_clean %>% 
-  mutate(
-    severe = if_else(Offence %in% severe_levels,
-                     "severe", "not_severe"),
-    severe = factor(severe, levels = c("not_severe", "severe"))
-  )
-
-
-set.seed(123)
-data_split <- initial_split(pun_clean, prop = 0.8, strata = severe)
-data_train <- training(data_split)
-data_test  <- testing(data_split)
-
-
-log_spec <- logistic_reg() %>% set_engine("glm")
-
-severe_rec <- recipe(
-  severe ~ sex + age_group + Ethnicity + Religion,
-  data = data_train) %>%
-  step_dummy(all_nominal_predictors()) %>%
-  step_zv(all_predictors())
-
-severe_wf <- workflow() %>%
-  add_recipe(severe_rec) %>%
-  add_model(log_spec)
-
-severe_fit <- fit(severe_wf, data = data_train)
-
-
-severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
-  bind_cols(data_test %>% select(severe))
-
-roc_severe <- roc_curve(severe_pred, truth = severe, .pred_severe)
-auc_severe <- roc_auc(severe_pred, truth = severe, .pred_severe)
-```
+# The confusion matrix
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
-library(ggplot2)
-library(tidymodels)
 
+
+library(yardstick)
+library(ggplot2)
 
 # Convert offence categories into a binary classification variable (severe vs not_severe)
 severe_levels <- c("Possession of unauthorised articles", "Threats / Abusive and Insulting racist words/behaviour", "Cause damage to any part of a prison, Drug related offence", "Fights with any person", "Endangers health/safety of any person", "Assault on a prisoner", "Assault on staff", "Commits any assault", "Obstructs an officer executing his duty", "Attempts: Assault on staff", "Assault on any other person")
@@ -557,6 +412,59 @@ severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
   bind_cols(data_test)
 
 
+# 生成分类预测（分类结果而不是概率）
+severe_pred_class <- predict(severe_fit, data_test) %>%
+  bind_cols(data_test %>% select(severe))
+
+library(patchwork)
+
+# 混淆矩阵图
+cm_plot <- conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
+  autoplot(type = "heatmap") +
+  scale_fill_gradient(low = "#a5d8ff", high = "#1e90ff") +
+  labs(
+    title = "Confusion Matrix for Logistic Regression",
+    x = "Truth",
+    y = "Prediction"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title = element_text(size = 10),
+    axis.text = element_text(size = 9)
+  )
+
+# 提取指标
+sens <- sensitivity(severe_pred_class, truth = severe, estimate = .pred_class)$.estimate
+spec <- specificity(severe_pred_class, truth = severe, estimate = .pred_class)$.estimate
+
+# 构造文本图层
+text_plot <- ggplot() +
+  annotate("text", x = 1, y = 1,
+           label = paste0("Sensitivity: ", round(sens, 2),
+                          "\nSpecificity: ", round(spec, 2)),
+           size = 5, hjust = 0) +
+  theme_void()
+
+# 上下合并，混淆矩阵比例缩小
+cm_plot / text_plot + plot_layout(heights = c(0.75, 0.25))
+
+
+
+```
+
+---
+
+# Logistic Regression Coefficients 
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
+library(ggplot2)
+library(tidymodels)
+
+
+
+
 #create ROC diagram and calculate the area
 severe_pred %>%  
   roc_curve(truth = severe, .pred_severe, event_level = "second") %>% 
@@ -571,22 +479,19 @@ severe_pred %>%
 ---
 
 # Conclusion
-Topic 1 – Conclusion
 
-Our analysis shows that different age groups tend to commit different kinds of offences.
-Younger prisoners are more often involved in rule-breaking behaviours such as disobedience or disrespect, while older age groups show higher involvement in transactional or more serious offences.
-This means that offence patterns are clearly linked to age, and age groups do not behave in the same way inside prisons.
 
-Topic 2 – Conclusion
-
-Punishment length also varies across age groups.
-Although the differences are not very large, some age groups consistently receive slightly longer punishments than others.
-This suggests that age plays a role in how long punishments are assigned, and that disciplinary outcomes may be somewhat different depending on the age group.
-
-Overall conclusion
+###Overall conclusion
 
 Our visualisations suggested that there is a tendancy for offenders in certain age groups to commit certain crimes more than other age groups. The low AUC value for our ROC curve suggests there is little or no link between age and severity of offences, this appears to be due to the fact that offences we can reasonably label as 'severe' are too broad and to get more insight we may have to look at a more specific kind of offence.
 
+
+
 ---
 
+class: center, middle
+
 # Thanks for watching!
+
+
+
