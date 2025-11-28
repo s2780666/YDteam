@@ -582,7 +582,7 @@ auc_severe
 # Conclusion
 
 
-Our visualisations suggested that there is a tendency for offenders in certain age groups to commit certain crimes more than other age groups. After refining our model, we have shown a weak link between age and a tendency to commit violent offences, as indicated by an AUC value > 0.5
+Our visualisations suggested that there is a tendency for offenders in certain age groups to commit certain crimes more than other age groups. After refining our model, we have shown a weak link between age and a tendency to commit violent offences, as indicated by an increased AUC value.
 
 
 ---
