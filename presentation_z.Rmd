@@ -90,8 +90,7 @@ What kinds of crimes are different age groups committing?
 
 Introduction:
 
-Understanding how offences differ across age groups helps reveal behaviour patterns in prisons.
-Using the Adjudications Q1 2023 dataset, where each case has an age group and offence type, we look at which offences are most common at different ages and how these patterns change across age groups.
+In many criminal justice studies, age plays a key role — younger individuals are often linked to more impulsive or violent behaviour, while older offenders tend to commit fewer or less severe violations. So in our project, we wanted to explore whether age is linked to offence severity.
 ---
 class:middle, center
 ```{r, echo=FALSE, fig.align='center', out.width="60%"}
@@ -226,9 +225,7 @@ How does punishment length vary across different age groups?
 
 Introduction:
 
-This section focuses on whether punishment length varies across age groups.
-Using the Punishments Q1 2023 dataset, we compare the average number of punishment days across different ages to see which groups tend to receive longer or shorter punishments and what these differences might suggest.
-
+This section focus on whether punishment length varies across age groups. Using the Punishments Q1 2023 dataset, we compare the average number of punishment days across different ages to see which groups tend to receive longer or shorter punishments 
 ```{r, include=FALSE, message=FALSE, warning=FALSE}
 library(dplyr)
 library(ggplot2)
