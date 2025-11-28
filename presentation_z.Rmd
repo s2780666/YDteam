@@ -1,0 +1,595 @@
+---
+title: "Investigation of Prisoner Population Statistics"
+author: "YD_team <br> Cecilia, Frank, Junkai, Zhandos"
+institute: "University of Edinburgh"
+date: "`r Sys.Date()`"
+output:
+  xaringan::moon_reader:
+    css: xaringan-themer.css
+    lib_dir: libs
+    nature:
+      ratio: "16:9"
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      
+---
+
+```{r install-package, include = FALSE, eval = FALSE}
+# Copy and paste the following code into your console to download and install
+# the `xaringan` package that contains all of the code which allows you 
+# to create presentation slides in Rmarkdown
+install.packages('xaringan')
+```
+
+
+```{r load-packages, include = FALSE}
+# Add any additional packages you need to this chunk
+library(tidyverse)
+library(tidymodels)
+library(palmerpenguins)
+library(knitr)
+library(xaringanthemer)
+library(janitor)
+library(readr)
+
+adjudications <- read_csv("data/CSV/AdjudicationsQ12023.csv")
+
+ 
+adjudications <- adjudications %>%
+  clean_names()
+
+adjudications_clean <- adjudications %>%
+  drop_na()
+
+
+adjudications_clean <- adjudications_clean %>%
+  rename(quarter = date)
+```
+
+
+```{r setup, include=FALSE}
+# For better figure resolution
+knitr::opts_chunk$set(fig.retina = 3, dpi = 300, fig.width = 6, fig.asp = 0.618, out.width = "80%")
+```
+
+```{r load-data, include=FALSE}
+# Load your data here
+
+```
+
+```{r include=FALSE}
+
+#Background image
+style_xaringan(
+  title_slide_background_image = "img/2016-03-29-1459270996-4976357-PRISONBED_original-1726549967.jpg"
+)
+```
+
+class: center, middle
+
+##The statement of the overall goal
+
+Question: Is age linked to both the types of offences prisoners commit and the length of punishments they receive?
+
+
+
+
+---
+
+class: inverse, center, middle
+
+# Topic 1：
+Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+
+
+---
+# Question:
+
+What kinds of crimes are different age groups committing?
+
+Introduction:
+
+Understanding how offences differ across age groups helps reveal behaviour patterns in prisons.
+Using the Adjudications Q1 2023 dataset, where each case has an age group and offence type, we look at which offences are most common at different ages and how these patterns change across age groups.
+---
+class:middle, center
+```{r, echo=FALSE, fig.align='center', out.width="60%"}
+glimpse(adjudications_clean)
+colSums(is.na(adjudications_clean))
+```
+---
+```{r, echo=FALSE, fig.align='center', out.width="80%"}
+library(tidyverse)
+library(janitor)
+
+
+adjudications_clean %>%
+  group_by(offence) %>%
+  summarise(total = sum(count, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(total)) %>%
+  slice_head(n = 6) %>%
+  ggplot(aes(x = reorder(offence, total), y = total, fill = offence)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Top 6 offences (Q1 2023)",
+    x = "Offence",
+    y = "Total cases"
+  )
+
+
+```
+---
+
+# Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
+library(forcats)
+library(scales)
+library(gt)
+library(glue)
+library(janitor)
+
+adj <- read_csv("AdjudicationsQ12023.csv") |> clean_names()
+
+adj_clean <- adj |>
+  mutate(
+    count = suppressWarnings(as.numeric(count)),
+    age_group = as.character(age_group),
+    offence   = as.character(offence)
+  ) |>
+  filter(!is.na(age_group), !is.na(offence), !is.na(count), count > 0)
+
+age_order <- c("15 - 17","18 - 20","21 - 24","25 - 29","30 - 39",
+               "40 - 49","50 - 59","60 - 69","70 and over")
+adj_clean <- adj_clean |>
+  mutate(age_group = fct_relevel(age_group, age_order, after = 0))
+
+age_offence_counts <- adj_clean |>
+  group_by(age_group, offence) |>
+  summarise(total = sum(count), .groups = "drop")
+
+age_totals <- age_offence_counts |>
+  group_by(age_group) |>
+  summarise(age_total = sum(total), .groups = "drop")
+
+age_offence_share <- age_offence_counts |>
+  left_join(age_totals, by = "age_group") |>
+  mutate(pct = total / age_total)
+
+p_counts <- age_offence_counts |>
+  ggplot(aes(x = total, y = age_group, fill = offence)) +
+  geom_col() +
+  geom_text(
+    data = age_totals,
+    aes(x = age_total, y = age_group, label = comma(age_total)),
+    nudge_x = max(age_totals$age_total, na.rm = TRUE) * 0.02, 
+    inherit.aes = FALSE, size = 3
+  ) +
+  labs(
+    title = "Adjudications by Age Group and Offence (Q1 2023)",
+    x = "Total Cases",
+    y = "Age Group",
+    fill = "Offence"
+  ) +
+  theme_minimal(base_size = 12)
+
+p_share_labels <- age_offence_share |>
+  mutate(lbl = ifelse(pct >= 0.05, percent(pct, accuracy = 1), "")) |>
+  ggplot(aes(x = pct, y = age_group, fill = offence)) +
+  geom_col() +
+  geom_text(
+    aes(label = lbl),
+    position = position_stack(vjust = 0.5),
+    size = 3, color = "white"
+  ) +
+  scale_x_continuous(labels = percent_format(accuracy = 1)) +
+  labs(
+    title = "Composition of Offence Types within Each Age Group (Q1 2023)",
+    x = "Share within Age Group",
+    y = "Age Group",
+    fill = "Offence"
+  ) +
+  theme_minimal(base_size = 12)
+
+# This visualization shows us that, proportionally speaking, violence is a more common offence among younger inmates. We can also see that disobedience/disrespect is more common among older inmates. This data is useful as differences in severity of offences committed by different age groups may be a factor in differences in length of punishments.
+```
+
+---
+
+# Crime Patterns Across Age Groups in UK Prisons (Q1 2023)
+
+```{r, echo=FALSE, fig.align='center', out.width="60%"}
+p_share_labels
+```
+
+
+---
+class: inverse, center, middle
+
+# Topic 2：
+Punishment Length Across Age Groups
+ 
+
+
+---
+
+#Question: 
+
+How does punishment length vary across different age groups?
+
+Introduction:
+
+This section focuses on whether punishment length varies across age groups.
+Using the Punishments Q1 2023 dataset, we compare the average number of punishment days across different ages to see which groups tend to receive longer or shorter punishments and what these differences might suggest.
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+load("./data/CSV/punishments.rdata")
+
+pun_clean <- punishments %>%
+  rename(
+    sex = Sex,
+    age_group = `Age group`,
+    no_days_raw = `No of days`
+  ) %>%
+  mutate(
+    no_days_raw = ifelse(no_days_raw == ".", NA, no_days_raw),
+    no_days = as.numeric(no_days_raw),
+    sex = factor(sex),
+    age_group = factor(age_group, ordered = TRUE)
+  ) %>%
+  filter(
+    !is.na(sex),
+    !is.na(age_group),           
+    !is.na(no_days),
+    no_days > 0
+  )
+
+age_summary <- pun_clean %>%
+  group_by(age_group) %>%
+  summarise(
+    mean_days = mean(no_days),
+    se_days = sd(no_days) / sqrt(n()),
+    .groups = "drop"
+  )
+
+p_age_bar <- ggplot(age_summary, aes(x = age_group, y = mean_days, fill = mean_days)) +
+  geom_col(width = 0.55) +
+  geom_errorbar(
+    aes(ymin = mean_days - se_days, ymax = mean_days + se_days),
+    width = 0.15,
+    linewidth = 0.5
+  ) +
+  geom_text(
+    aes(label = round(mean_days, 1)),
+    vjust = -0.6,
+    size = 3
+  ) +
+  scale_fill_gradient(
+    low = "#a5d8ff",
+    high = "#1e90ff",
+    name = "Mean days"
+  ) +
+  labs(
+    title = "Average Punishment Length by Age Group",
+    x = "Age Group",
+    y = "Average Punishment Length (days)"
+  ) +
+  theme_classic(base_size = 11) +
+  theme(
+    axis.text.x = element_text(angle = 35, hjust = 1),
+    legend.position = "none"
+  )
+```
+
+---
+
+# Average Punishment Length by Age Group
+
+```{r, echo=FALSE, fig.align='center', out.width="75%"}
+p_age_bar
+```
+
+---
+class: small
+
+# Tables
+
+the sample size for each age group,
+the average punishment length (mean_days),
+the median punishment length (median_days),
+the standard deviation (sd_days),
+the minimum value (min_days),
+the maximum value (max_days),
+the interquartile range (IQR)
+```{r, echo=FALSE, fig.align='center', out.width="60%"}
+age_stats <- pun_clean %>%
+  group_by(age_group) %>%
+  summarise(
+    n = n(),
+    mean_days = mean(no_days),
+    median_days = median(no_days),
+    sd_days = sd(no_days),
+    min_days = min(no_days),
+    max_days = max(no_days),
+    iqr_days = IQR(no_days)
+  )
+
+age_stats
+```
+
+---
+
+# Model
+
+###Question:
+Is the severity of an offence affected by the age of the perpetrator?
+
+###Choosing a Model:
+logistic regression(severe ~ age_group)
+
+###Reason:
+Logistic regression is ideal for binary outcomes (severe or not)
+
+
+```{r, include=FALSE, message=FALSE, warning=FALSE}
+library(tidymodels)
+library(dplyr)
+library(broom)
+library(gt)
+library(stringr)
+
+```
+
+---
+
+# The confusion matrix
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
+
+
+library(yardstick)
+library(ggplot2)
+
+# Convert offence categories into a binary classification variable (severe vs not_severe)
+severe_levels <- c("Possession of unauthorised articles", "Threats / Abusive and Insulting racist words/behaviour", "Cause damage to any part of a prison, Drug related offence", "Fights with any person", "Endangers health/safety of any person", "Assault on a prisoner", "Assault on staff", "Commits any assault", "Obstructs an officer executing his duty", "Attempts: Assault on staff", "Assault on any other person")
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    severe = if_else(detailed_offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+    )
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    age_midpoint = (strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))) / 2
+      ) %>% 
+  drop_na()
+
+
+# Fix random numbers by setting the seed 
+# Enables analysis to be reproducible when random numbers are used 
+set.seed(123)
+
+# Put 80% of the data into the training set 
+data_split <- initial_split(adj_clean, prop = 0.8, strata = severe)
+# Create data frames for the two sets:
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+
+#Fit a model to the training dataset
+log_spec <- logistic_reg() %>%
+  set_engine("glm") 
+
+severe_rec <- recipe(
+  severe ~ age_midpoint , # formula
+  data = data_train) %>%                           # data to use for cataloging names and types of variables
+  step_unknown(all_nominal_predictors())%>%
+  step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
+  step_zv(all_predictors())        #Remove zero variance variables
+
+
+severe_wf <- 
+  workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+
+severe_fit <- severe_wf %>% fit(data = data_train)
+
+#Predict probabilities on the testing dataset
+severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
+  bind_cols(data_test)
+
+
+# 生成分类预测（分类结果而不是概率）
+severe_pred_class <- predict(severe_fit, data_test) %>%
+  bind_cols(data_test %>% select(severe))
+
+library(patchwork)
+
+# 混淆矩阵图
+cm_plot <- conf_mat(severe_pred_class, truth = severe, estimate = .pred_class) %>%
+  autoplot(type = "heatmap") +
+  scale_fill_gradient(low = "#a5d8ff", high = "#1e90ff") +
+  labs(
+    title = "Confusion Matrix for Logistic Regression",
+    x = "Truth",
+    y = "Prediction"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title = element_text(size = 10),
+    axis.text = element_text(size = 9)
+  )
+
+# 提取指标
+sens <- sensitivity(severe_pred_class, truth = severe, estimate = .pred_class)$.estimate
+spec <- specificity(severe_pred_class, truth = severe, estimate = .pred_class)$.estimate
+
+# 构造文本图层
+text_plot <- ggplot() +
+  annotate("text", x = 1, y = 1,
+           label = paste0("Sensitivity: ", round(sens, 2),
+                          "\nSpecificity: ", round(spec, 2)),
+           size = 5, hjust = 0) +
+  theme_void()
+
+# 上下合并，混淆矩阵比例缩小
+cm_plot / text_plot + plot_layout(heights = c(0.75, 0.25))
+
+
+
+```
+
+---
+
+# Logistic Regression Coefficients 
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', out.width="70%"}
+library(ggplot2)
+library(tidymodels)
+
+
+
+
+#create ROC diagram and calculate the area
+severe_pred %>%  
+  roc_curve(truth = severe, .pred_severe, event_level = "second") %>% 
+  autoplot()
+
+```
+
+---
+
+# Logistic Regression Coefficients 
+
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width="70%"}
+library(ggplot2)
+library(tidymodels)
+
+
+
+
+#create ROC diagram and calculate the area
+severe_pred %>%  
+  roc_curve(truth = severe, .pred_severe, event_level = "second") %>% 
+  autoplot()
+
+```
+
+
+---
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width="70%"}
+auc_severe <- 
+  roc_auc(severe_pred, truth = severe, .pred_severe, event_level = "second")
+
+auc_severe
+```
+
+The low AUC value for our ROC curve suggests there is little or no link between age and severity of offences, this is likely because 'severe' is too broad a category and to get more insight we may have to look at a more specific kind of offence.
+
+---
+# Refining The Model
+
+Changing the binary response variable to violent vs. non-violent offences:
+
+```{r echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width="70%"}
+library(tidymodels)
+
+
+# Convert offence categories into a binary classification variable (severe vs not_severe)
+severe_levels <- c("Fights with any person")
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    severe = if_else(detailed_offence %in% severe_levels,
+                     "severe", "not_severe"),
+    severe = factor(severe, levels = c("not_severe", "severe"))
+    )
+
+adj_clean <- adj_clean %>% 
+  mutate(
+    age_midpoint = (strtoi(substr(age_group, 1, 2)) + strtoi(substr(age_group, 6, 7))) / 2
+      ) %>% 
+  drop_na()
+
+
+# Fix random numbers by setting the seed 
+# Enables analysis to be reproducible when random numbers are used 
+set.seed(123)
+
+# Put 80% of the data into the training set 
+data_split <- initial_split(adj_clean, prop = 0.8, strata = severe)
+# Create data frames for the two sets:
+data_train <- training(data_split)
+data_test  <- testing(data_split)
+
+
+#Fit a model to the training dataset
+log_spec <- logistic_reg() %>%
+  set_engine("glm") 
+
+severe_rec <- recipe(
+  severe ~ age_midpoint , # formula
+  data = data_train) %>%                           # data to use for cataloging names and types of variables
+  step_unknown(all_nominal_predictors())%>%
+  step_dummy(all_nominal_predictors()) %>%   #Create dummy variables
+  step_zv(all_predictors())        #Remove zero variance variables
+
+severe_wf <- 
+  workflow() %>%
+  add_recipe(severe_rec) %>%
+  add_model(log_spec)
+
+
+severe_fit <- severe_wf %>% fit(data = data_train)
+
+#Predict probabilities on the testing dataset
+severe_pred <- predict(severe_fit, data_test, type = "prob") %>%
+  bind_cols(data_test)
+
+
+#create ROC diagram and calculate the area
+severe_pred %>%  
+  roc_curve(truth = severe, .pred_severe, event_level = "second") %>% 
+  autoplot()
+
+auc_severe <- 
+  roc_auc(severe_pred, truth = severe, .pred_severe, event_level = "second")
+
+auc_severe
+
+auc_severe <- roc_auc(severe_pred, truth = severe, .pred_severe, event_level = "second")
+
+auc_severe
+```
+---
+
+# Conclusion
+
+
+Our visualisations suggested that there is a tendency for offenders in certain age groups to commit certain crimes more than other age groups. After refining our model, we have shown a weak link between age and a tendency to commit violent offences, as indicated by an AUC value > 0.5
+
+
+---
+
+class: center, middle
+
+# Thanks for watching!
+
+### Any questions?
+
